@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/adopt.css') }}">
+
+<section class="adopt-page">
+
+    <aside class="filters">
+        <h3>Фільтри 🐾</h3>
+
+        <div class="filter-group">
+            <p>Тип тварини</p>
+            <div class="pill-group">
+                <button class="pill active">🐈 Коти</button>
+                <button class="pill">🐕 Собаки</button>
+                <button class="pill">🐢 Інші</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <p>Стать</p>
+            <label><input type="checkbox"> Хлопчик</label>
+            <label><input type="checkbox"> Дівчинка</label>
+        </div>
+
+        <div class="filter-group">
+            <p>Вік</p>
+            <input type="range" min="0" max="15">
+            <span class="range-info">до 15 років</span>
+        </div>
+
+        <div class="filter-group">
+            <p>Розмір</p>
+            <label><input type="checkbox"> Маленький</label>
+            <label><input type="checkbox"> Середній</label>
+            <label><input type="checkbox"> Великий</label>
+        </div>
+
+        <div class="filter-group">
+            <p>Характер</p>
+            <label><input type="checkbox"> Спокійний</label>
+            <label><input type="checkbox"> Активний</label>
+            <label><input type="checkbox"> Лагідний</label>
+        </div>
+
+        <div class="filter-group toggles">
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider"></span>
+                Стерилізований
+            </label>
+
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider"></span>
+                Термінова адопція
+            </label>
+        </div>
+
+        <button class="reset-btn">Скинути фільтри</button>
+    </aside>
+
+    <main class="adopt-content">
+        <h1>Знайди друга серця 💕</h1>
+
+        <div class="pet-grid">
+            <div class="pet-card purple">
+                <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+                <h3>Лана</h3>
+                <p>Вік: 1,5 року</p>
+                <p>Стать: дівчинка</p>
+                <button>Детальніше ♡</button>
+            </div>
+
+            <div class="pet-card peach">
+                <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+                <h3>Кері</h3>
+                <p>Вік: 5 років</p>
+                <p>Стать: хлопчик</p>
+                <button>Детальніше ♡</button>
+            </div>
+
+            <div class="pet-card green">
+                <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+                <h3>Долі</h3>
+                <p>Вік: 3 роки</p>
+                <p>Стать: дівчинка</p>
+                <button>Детальніше ♡</button>
+            </div>
+
+            <div class="pet-card blue">
+                <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+                <h3>Коллін</h3>
+                <p>Вік: 4 роки</p>
+                <p>Стать: хлопчик</p>
+                <button>Детальніше ♡</button>
+            </div>
+        </div>
+    </main>
+
+</section>
+
+{% endblock %}

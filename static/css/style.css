@@ -1,0 +1,358 @@
+html, body{
+    width: 100%;
+    overflow-x: hidden;
+    padding: 0;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background:  #f8f9fb;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.header {
+    width: 100%;
+    padding: 10px 0;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-container {
+    width: 100%;
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link img {
+    height: 70px;
+    width: auto;
+    display: block;
+}
+
+.nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #444;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 10px 22px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent
+}
+
+.nav a:hover {
+    background-color: #f0f2f5;
+    color: #000;
+}
+
+.nav a.active {
+    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%);
+    color: #333;
+    font-weight: 600;
+}
+
+.account-btn {
+    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;
+    width: 50px;
+    background-color: #f1f3f6;
+    border-radius: 50%;
+    color: #666;
+    transition: all 0.3 ease;
+}
+
+.account-btn:hover {
+    color: white;
+}
+
+.hero {
+    position: relative;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    padding: 0 5%;
+    overflow: hidden;
+    background: radial-gradient(circle at top left, #ccf2f5 0%, #ffdbe8 65%, #ffeaf1 100%);
+}
+
+.hero-image-layer {
+    position: absolute;
+    right: -200px;
+    bottom: 0;
+    width: 65%;
+    max-width: 880px;
+    height: auto;
+    z-index: 1;
+    pointer-events: none;
+
+}
+
+.hero-image-layer img{
+    width: 408px;
+    height: 600px;
+    display: block;
+}
+
+.hero-text {
+    position: relative;
+    z-index: 2;
+    max-width: 645px;
+    width: 100%;
+}
+
+.hero-text h1 {
+    font-size: 56px;
+    line-height: 1.2;
+    color: #2c2c2c;
+    margin-bottom: 40px;
+    font-weight: 800
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 50px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.input-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.input-group .icon {
+    font-size: 20px
+    margin-right: 10px;
+}
+
+.search-box input, .search-box select {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    color: #555;
+    width: 100%;
+    cursor: default;
+}
+
+.divider {
+    width: 1px;
+    height:30px;
+    background-color: #ddd;
+}
+
+.btn-main {
+    font-size: 16px;
+    font-weight: bold;
+    background: #ff85a2;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: background 0.3s;
+    white-space: nowrap;
+}
+
+.btn-main:hover {
+    background: #ff6b8e;
+    box-shadow: 0 4px 15px rgba(256, 107, 142, 0.4);
+}
+
+.pets {
+    padding: 40px;
+}
+
+.pets h2 {
+    font-size: 38px;
+    font-weight: bold;
+}
+
+.pet-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.pet-card {
+    background: white;
+    border-radius: 20px;
+    padding: 15px;
+    text-align: left;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.pet-card h3 {
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.pet-card p {
+    font-size: 14px;
+    color: #666;
+    margin: 2px 0;
+}
+
+.pet-card img {
+    width: 100%;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+
+.pet-card button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pet-card.purple {
+    border: 7px solid #e5d9ff;
+}
+
+.pet-card.purple button {
+    background: #e5d9ff;
+}
+
+.pet-card.peach {
+    border: 7px solid #ffe1c6;
+}
+
+.pet-card.peach button {
+    background: #ffe1c6;
+}
+
+.pet-card.green {
+    border: 7px solid #c9f2e3;
+}
+
+.pet-card.green button {
+    background: #c9f2e3;
+}
+
+.pet-card.blue {
+    border: 7px solid #c4def2;
+}
+
+.pet-card.blue button {
+    background: #c4def2;
+}
+
+.more-pets {
+    margin-top: 50px;
+    padding: 40px;
+    border-radius: 25px;
+    text-align: center;
+    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%)
+}
+
+.more-pets h3 {
+    font-size: 26px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.more-pets-btn {
+    display: inline-block;
+    padding: 14px 34px;
+    border-radius: 40px;
+    background: #fac9bd;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.more-pets-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.info-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.info-card {
+    background: #fff4cc;
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.info-card h4 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.info-card p {
+    font-size: 14px;
+    color: #555;
+}
+
+.info-card-btn {
+    display: inline-block;
+    padding: 14px 34px;
+    border-radius: 40px;
+    background: #ffb8c8;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.info-card-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.footer {
+    text-align: center;
+    padding: 20px;
+    background: #EEF1F7;
+    margin-top: 40px;
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .pet-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .pet-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .pet-grid {
+        grid-template-columns: 1fr;
+    }
+}

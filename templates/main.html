@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="hero-image-layer">
+        <img src="{{ url_for('static', filename='images/cats.png') }}" alt="Happy Family">
+    </div>
+
+    <div class="hero-text">
+        <h1>Знайди друга серця з OhMyPet!🐾</h1>
+        <div class="search-box">
+            <div class="input-group">
+                <span class="icon">📍</span>
+                <input type="text" placeholder="Місто(Наприклад: Київ)" disabled>
+            </div>
+            <div class="divider"></div>
+            <div class="input-group">
+                <span class="icon">🐶</span>
+                <select>
+                    <option>Кого бажаєте взяти?</option>
+                    <option>Котик</option>
+                    <option>Собачка</option>
+                    <option>Хом'ячок</option>
+                </select>
+            </div>
+            <button class="btn-main">Знайти друга</button>
+        </div>
+    </div>
+</section>
+
+<section class="pets">
+    <h2>Наші тваринки</h2>
+    <div class="pet-grid">
+        <div class="pet-card purple">
+            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+            <h3>Ракель</h3>
+            <p>Вік: 1,5 року</p>
+            <p>Стать: хлопчик</p>
+            <button>Детальніше ♡</button>
+        </div>
+        <div class="pet-card peach">
+            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+            <h3>Сніжинка</h3>
+            <p>Вік: 5 років</p>
+            <p>Стать: дівчинка</p>
+            <button>Детальніше ♡</button>
+        </div>
+        <div class="pet-card green">
+            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+            <h3>Сніжинка</h3>
+            <p>Вік: 5 років</p>
+            <p>Стать: дівчинка</p>
+            <button>Детальніше ♡</button>
+        </div>
+        <div class="pet-card blue">
+            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
+            <h3>Мурчик</h3>
+            <p>Вік: 4 роки</p>
+            <p>Стать: хлопчик</p>
+            <button>Детальніше ♡</button>
+        </div>
+    </div>
+    <div class="more-pets">
+        <h3>Ще багато хвостиків чекають на дім 🏡</h3>
+        <a href="#" class="more-pets-btn">Подивитись усіх</a>
+    </div>
+    <div class="info-cards">
+    <div class="info-card">
+        <h4>Інтелектуальний підбір 🧠</h4>
+        <p>Знаходимо ідеального друга за вашими вподобаннями</p>
+        <a href="#" class="info-card-btn">Перейти</a>
+    </div>
+
+    <div class="info-card">
+        <h4>Прогноз потреб у кормі 🥣</h4>
+        <p>Розрахунок харчування для здорового життя тваринки</p>
+        <a href="#" class="info-card-btn">Перейти</a>
+    </div>
+</div>
+</section>
+
+
+
+{% endblock %}

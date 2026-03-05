@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OhMyPet!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
+            </a>
+
+            <nav class="nav">
+                <a href="{{ url_for('main') }}" class="active">Головна</a>
+                <a href="{{ url_for('adopt') }}">Адопція</a>
+                <a href="#">Для притулків</a>
+                <a href="#">Про нас</a>
+                <a href="#">Контакти</a>
+            </nav>
+
+            <div class="account">
+                <a href="#" class="account-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+    <footer class="footer">
+        <nav class="nav">
+            <a href="#" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
+            </a>
+            <a href="#">Головна</a>
+            <a href="#">Адопція</a>
+            <a href="#">Для притулків</a>
+            <a href="#">Про нас</a>
+            <a href="#">Контакти</a>
+        </nav>
+    </footer>
+</body>
+</html>

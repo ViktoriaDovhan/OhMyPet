@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Login / Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+
+<div class="page">
+
+    <div class="card">
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active">Вхід</div>
+            <div class="tab">Реєстрація</div>
+        </div>
+
+        <!-- Card body -->
+        <div class="card-body">
+
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
+
+            <h1>З поверненням! 🐾</h1>
+            <p class="subtitle">Увійдіть, щоб продовжити пошук друга</p>
+
+            <form method="post">
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Пароль" required>
+
+                <button type="submit">Увійти</button>
+            </form>
+
+            <a href="#" class="forgot">Забули пароль?</a>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
