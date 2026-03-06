@@ -4,12 +4,6 @@
     <div class="animal-gallery">
         {% if photos%}
             <img src="{{ url_for('static', filename=photos[0].photo_url) }}" alt="{{ animal.name }}" class="main-animal-photo">
-
-            <div class="animal-thumbnails">
-                {% for photo in photos %}
-                    <img src="{{ url_for('static', filename=photo.photo_url) }}" alt="{{ animal.name }}">
-                {% endfor %}
-            </div>
         {% else %}
             <img src="{{ url_for('static', filename='images/no-image.png') }}" alt="{{ animal.name }}" class="main-animal-photo">
         {% endif %}
@@ -17,7 +11,7 @@
 
     <div class="animal-info">
         <h1>{{ animal.name }}</h1>
-        <p><strong>Тип:</strong>{{ animal.type }}</p>
+        <p><strong>Тип:</strong>{{ animal.animal_type }}</p>
         <p><strong>Порода:</strong>{{ animal.breed or 'Невідомо' }}</p>
         <p><strong>Стать:</strong>{{ animal.sex }}</p>
         <p><strong>Вік:</strong>{{ animal.age_months }}</p>
@@ -34,7 +28,7 @@
         <p>{{ animal.shelter_phone }}</p>
         <p>{{ animal.shelter_email }}</p>
 
-        <a href="{{ url_for(auth.login') }}">Подати заявку на адопцію</a>
+        <a href="{{ url_for('auth.login') }}">Подати заявку на адопцію</a>
     </div>
 </section>
 {% endblock %}

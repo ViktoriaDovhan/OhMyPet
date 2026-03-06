@@ -49,8 +49,22 @@
     gap: 10px;
 }
 
-.pill input[type="radio"] {
+.pill-checkbox input {
     display: none;
+}
+
+.pill-checkbox span {
+    display: inline-block;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: #f7eefb;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.pill-checkbox input:checked + span {
+    background: #eecde3;
+    font-weight: 600;
 }
 
 .pill {
@@ -129,10 +143,10 @@
 .details-btn {
     display: inline-block;
     margin-top: 10px;
-    padding: 10px 18px;
-    border-radius: 18px;
+    padding: 12px 20px;
+    border-radius: 20px;
     text-decoration: none;
-    background: #f7d6e6;
+    background: #f3cfe1;
     color: #333;
     font-weight: 600;
 }

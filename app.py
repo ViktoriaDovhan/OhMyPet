@@ -16,12 +16,13 @@ def main():
 
 @app.route('/adopt')
 def adopt():
-    animal_type = request.args.get("type", "").strip()
-    sex = request.args.get("sex", "").strip()
-    age = request.args.get("age", "").strip()
-    size = request.args.get("size", "").strip()
-    sterilized = request.args.get("sterilized", "").strip()
-    urgent = request.args.get("urgent", "").strip()
+    selected_types = request.args.getlist("type")
+    selected_sexes = request.args.getlist("sex")
+    selected_ages = request.args.getlist("age")
+    selected_sizes = request.args.getlist("size")
+
+    sterilized = request.args.get("sterilized") == "true"
+    urgent = request.args.get("urgent") == "true"
 
     query = """
         SELECT
@@ -52,30 +53,37 @@ def adopt():
 
     params = []
 
-    if animal_type:
-        query += " AND a.animal_type = %s"
-        params.append(animal_type)
+    if selected_types:
+        query += " AND a.animal_type = ANY(%s)"
+        params.append(selected_types)
 
-    if sex:
-        query += " AND a.sex = %s"
-        params.append(sex)
+    if selected_sexes:
+        query += " AND a.sex = ANY(%s)"
+        params.append(selected_sexes)
 
-    if size:
-        query += " AND a.size = %s"
-        params.append(size)
+    if selected_sizes:
+        query += " AND a.size = ANY(%s)"
+        params.append(selected_sizes)
 
-    if sterilized == "true":
+    if sterilized:
         query += " AND COALESCE(a.sterilized, FALSE) = TRUE"
 
-    if urgent == "true":
+    if urgent:
         query += " AND COALESCE(a.urgent, FALSE) = TRUE"
 
-    if age == "baby":
-        query += " AND a.age_months <= 12"
-    elif age == "young":
-        query += " AND a.age_months > 12 AND a.age_months <= 36"
-    elif age == "adult":
-        query += " AND a.age_months > 36"
+    if selected_ages:
+        age_conditions = []
+
+        if "baby" in selected_ages:
+            age_conditions.append("a.age_months <= 12")
+        if "young" in selected_ages:
+            age_conditions.append("(a.age_months > 12 AND a.age_months <= 36)")
+        if "adult" in selected_ages:
+            age_conditions.append("(a.age_months > 36)")
+
+
+        if age_conditions:
+            query += " AND (" + " OR ".join(age_conditions) + ")"
 
     query += " ORDER BY a.id"
 
@@ -83,17 +91,14 @@ def adopt():
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(query, params)
     animals = cur.fetchall()
-
-    print("ANIMALS FROM DB:", animals)
-
     cur.close()
     conn.close()
 
     filters = {
-        "type": animal_type,
-        "sex": sex,
-        "age": age,
-        "size": size,
+        "types": selected_types,
+        "sexes": selected_sexes,
+        "ages": selected_ages,
+        "sizes": selected_sizes,
         "sterilized": sterilized,
         "urgent": urgent
     }
@@ -128,7 +133,7 @@ def animal_details(animal_id):
         FROM animals a
         LEFT JOIN shelters s ON s.id = a.shelter_id
         WHERE a.id = %s
-    """, (animal_id))
+    """, (animal_id,))
 
     animal = cur.fetchone()
 
@@ -136,6 +141,13 @@ def animal_details(animal_id):
         cur.close()
         conn.close()
         abort(404)
+
+    cur.execute("""
+        SELECT photo_url, is_main
+        FROM animal_photos
+        WHERE animal_id = %s
+        ORDER BY is_main DESC, id ASC
+    """, (animal_id,))
 
     photos = cur.fetchall()
 
