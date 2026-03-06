@@ -33,20 +33,21 @@ def adopt():
             a.age_months,
             a.size,
             a.color,
-            a.sterilized,
-            a.urgent,
-            a.description,
-            COALESCE(ap.photo_url, 'images/no-image.png') AS photo_url
+            COALESCE(a.sterilized, FALSE) AS sterilized,
+            COALESCE(a.urgent, FALSE) AS urgent,
+            COALESCE(a.description, '') AS description,
+            COALESCE(
+                (
+                    SELECT ap.photo_url
+                    FROM animal_photos ap
+                    WHERE ap.animal_id = a.id
+                    ORDER BY ap.is_main DESC, ap.id ASC
+                    LIMIT 1
+                ),
+                'images/no-image.png'
+            ) AS photo_url
         FROM animals a
-        LEFT JOIN animal_photos ap
-            ON ap.id = (
-                SELECT ap2.id
-                FROM animal_photos ap2
-                WHERE ap2.animal_id = a.id
-                ORDER BY ap2.is_main DESC, ap2.id ASC
-                LIMIT 1
-            )
-        WHERE a.is_adopted = FALSE
+        WHERE COALESCE(a.is_adopted, FALSE) = FALSE
     """
 
     params = []
@@ -63,11 +64,11 @@ def adopt():
         query += " AND a.size = %s"
         params.append(size)
 
-    if sterilized == "true" :
-        query += " AND a.sterilized = TRUE"
+    if sterilized == "true":
+        query += " AND COALESCE(a.sterilized, FALSE) = TRUE"
 
-    if urgent == "true" :
-        query += " AND a.urgent = TRUE"
+    if urgent == "true":
+        query += " AND COALESCE(a.urgent, FALSE) = TRUE"
 
     if age == "baby":
         query += " AND a.age_months <= 12"
@@ -82,6 +83,9 @@ def adopt():
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(query, params)
     animals = cur.fetchall()
+
+    print("ANIMALS FROM DB:", animals)
+
     cur.close()
     conn.close()
 

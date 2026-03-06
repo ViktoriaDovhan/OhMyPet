@@ -128,7 +128,7 @@
         <h1>Знайди друга серця 💕</h1>
 
         <div class="pet-grid">
-            {% for animal in animal %}
+            {% for animal in animals %}
                 <div class="pet-card purple">
                     <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}">
                     <h3>{{ animal.name }}</h3>
@@ -141,7 +141,7 @@
                         <p>Термінова адопція</p>
                     {% endif %}
 
-                    <a href="{{ url_for('animal.details', animal_id=animal.id) }}" class="details-btn">Детальніше ♡</a>
+                    <a href="{{ url_for('animal_details', animal_id=animal.id) }}" class="details-btn">Детальніше ♡</a>
                 </div>
             {% else %}
                 <p>За вибраними фільтрами тварин не знайдено</p>
