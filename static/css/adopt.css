@@ -14,6 +14,12 @@
     top: 100px;
 }
 
+.filters form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 .filters h3 {
     font-size: 22px;
     margin-bottom: 25px;
@@ -39,16 +45,19 @@
 
 .pill-group {
     display: flex;
-    gap: 10px;
     flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pill input[type="radio"] {
+    display: none;
 }
 
 .pill {
-    border: none;
+    display: inline-block;
     border-radius: 20px;
-    padding: 8px 16px;
+    padding: 10px 16px;
     cursor: pointer;
-    background: #f1f3f6;
 }
 
 .pill.active {
@@ -107,16 +116,27 @@
 }
 
 .reset-btn {
-    width: 100%;
-    border: none;
-    padding: 12px;
-    border-radius: 30px;
-    background: #f3f3f3;
-    font-weight: 600;
-    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
 }
 
 .adopt-content h1 {
     font-size: 40px;
     margin-bottom: 30px;
+}
+
+.details-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 18px;
+    border-radius: 18px;
+    text-decoration: none;
+    background: #f7d6e6;
+    color: #333;
+    font-weight: 600;
+}
+
+.details-btn:hover {
+    opacity: 0.9;
 }

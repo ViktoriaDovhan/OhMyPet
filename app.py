@@ -1,5 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, abort
+from psycopg2.extras import RealDictCursor
 from auth import auth
+from database.db import get_connection
 
 app = Flask(__name__)
 app.secret_key = "secret-key"
@@ -14,7 +16,129 @@ def main():
 
 @app.route('/adopt')
 def adopt():
-    return render_template("adopt.html")
+    animal_type = request.args.get("type", "").strip()
+    sex = request.args.get("sex", "").strip()
+    age = request.args.get("age", "").strip()
+    size = request.args.get("size", "").strip()
+    sterilized = request.args.get("sterilized", "").strip()
+    urgent = request.args.get("urgent", "").strip()
+
+    query = """
+        SELECT
+            a.id,
+            a.name,
+            a.animal_type,
+            a.breed,
+            a.sex,
+            a.age_months,
+            a.size,
+            a.color,
+            a.sterilized,
+            a.urgent,
+            a.description,
+            COALESCE(ap.photo_url, 'images/no-image.png') AS photo_url
+        FROM animals a
+        LEFT JOIN animal_photos ap
+            ON ap.id = (
+                SELECT ap2.id
+                FROM animal_photos ap2
+                WHERE ap2.animal_id = a.id
+                ORDER BY ap2.is_main DESC, ap2.id ASC
+                LIMIT 1
+            )
+        WHERE a.is_adopted = FALSE
+    """
+
+    params = []
+
+    if animal_type:
+        query += " AND a.animal_type = %s"
+        params.append(animal_type)
+
+    if sex:
+        query += " AND a.sex = %s"
+        params.append(sex)
+
+    if size:
+        query += " AND a.size = %s"
+        params.append(size)
+
+    if sterilized == "true" :
+        query += " AND a.sterilized = TRUE"
+
+    if urgent == "true" :
+        query += " AND a.urgent = TRUE"
+
+    if age == "baby":
+        query += " AND a.age_months <= 12"
+    elif age == "young":
+        query += " AND a.age_months > 12 AND a.age_months <= 36"
+    elif age == "adult":
+        query += " AND a.age_months > 36"
+
+    query += " ORDER BY a.id"
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(query, params)
+    animals = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    filters = {
+        "type": animal_type,
+        "sex": sex,
+        "age": age,
+        "size": size,
+        "sterilized": sterilized,
+        "urgent": urgent
+    }
+
+    return render_template("adopt.html", animals=animals, filters=filters)
+
+
+@app.route("/animal/<int:animal_id>")
+def animal_details(animal_id):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.animal_type,
+            a.breed,
+            a.sex,
+            a.age_months,
+            a.size,
+            a.color,
+            a.sterilized,
+            a.urgent,
+            a.vaccinated,
+            a.health_status,
+            a.description,
+            s.name AS shelter_name,
+            s.city AS shelter_city,
+            s.phone AS shelter_phone,
+            s.email AS shelter_email
+        FROM animals a
+        LEFT JOIN shelters s ON s.id = a.shelter_id
+        WHERE a.id = %s
+    """, (animal_id))
+
+    animal = cur.fetchone()
+
+    if not animal:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    photos = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("animal.html", animal=animal, photos=photos)
 
 
 @app.route("/auth")
