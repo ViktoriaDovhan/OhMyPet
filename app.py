@@ -20,6 +20,7 @@ def adopt():
     selected_sexes = request.args.getlist("sex")
     selected_ages = request.args.getlist("age")
     selected_sizes = request.args.getlist("size")
+    selected_characters = request.args.getlist("character")
 
     sterilized = request.args.get("sterilized") == "true"
     urgent = request.args.get("urgent") == "true"
@@ -33,6 +34,7 @@ def adopt():
             a.sex,
             a.age_months,
             a.size,
+            a.character,
             a.color,
             COALESCE(a.sterilized, FALSE) AS sterilized,
             COALESCE(a.urgent, FALSE) AS urgent,
@@ -64,6 +66,10 @@ def adopt():
     if selected_sizes:
         query += " AND a.size = ANY(%s)"
         params.append(selected_sizes)
+
+    if selected_characters:
+        query += " AND a.character = ANY(%s)"
+        params.append(selected_characters)
 
     if sterilized:
         query += " AND COALESCE(a.sterilized, FALSE) = TRUE"
@@ -99,6 +105,7 @@ def adopt():
         "sexes": selected_sexes,
         "ages": selected_ages,
         "sizes": selected_sizes,
+        "characters": selected_characters,
         "sterilized": sterilized,
         "urgent": urgent
     }
@@ -120,6 +127,7 @@ def animal_details(animal_id):
             a.sex,
             a.age_months,
             a.size,
+            a.character,
             a.color,
             a.sterilized,
             a.urgent,

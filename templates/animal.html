@@ -1,34 +1,145 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animal.css') }}">
+
+{% set main_photo = photos[0].photo_url if photos else 'images/no-image.png' %}
+{% set pretty_title = animal.name if animal.name else 'Тваринка' %}
+
 <section class="animal-page">
-    <div class="animal-gallery">
-        {% if photos%}
-            <img src="{{ url_for('static', filename=photos[0].photo_url) }}" alt="{{ animal.name }}" class="main-animal-photo">
-        {% else %}
-            <img src="{{ url_for('static', filename='images/no-image.png') }}" alt="{{ animal.name }}" class="main-animal-photo">
-        {% endif %}
+    <div class="animal-hero">
+        <div class="animal-gallery-wrap">
+            <div class="animal-gallery">
+                <div class="main-image-frame">
+                    {% if photos and photos|length > 1 %}
+                        <button type="button" class="gallery-arrow left" id="prevPhoto">‹</button>
+                        <button type="button" class="gallery-arrow right" id="nextPhoto">›</button>
+                    {% endif %}
+
+                    <img id="mainAnimalImage" src="{{ url_for('static', filename=main_photo) }}" alt="{{ pretty_title }}" class="main-animal-image">
+                </div>
+
+                {% if photos and photos|length > 1 %}
+                    <div class="thumbnail-row">
+                        {% for photo in photos %}
+                            <button type="button" class="thumb-btn {% if loop.first %}active{% endif %}" data-photo="{{ url_for('static', filename=photo.photo_url) }}">
+                                <img src="{{ url_for('static', filename=photo.photo_url) }}" alt="{{ pretty_title }}">
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="animal-side">
+            <div>
+                <h1 class="animal-title">{{ pretty_title }} 💕</h1>
+                <p class="animal-subtitle">Шукає турботливу родину та новий дім 🏡</p>
+            </div>
+
+            <div class="animal-info-card">
+                <div class="info-list">
+                    <div class="info-row">
+                        <div class="icon-badge icon-pink">♀</div>
+                        <div class="info-text"><strong>Стать:</strong> {{ animal.sex }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-lilac">📅</div>
+                        <div class="info-text"><strong>Вік:</strong> {{ animal.age_months }} місяців</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-peach">🐾</div>
+                        <div class="info-text"><strong>Порода:</strong> {{ animal.breed or 'Без породи' }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-pink">🎨</div>
+                        <div class="info-text"><strong>Забарвлення:</strong> {{ animal.color or 'Не вказано' }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-green">💜</div>
+                        <div class="info-text"><strong>Характер:</strong> {{ animal.character or 'Не вказано' }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-peach">❤</div>
+                        <div class="info-text"><strong>Стерилізація:</strong> {{ 'Є' if animal.sterilized else 'Немає' }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-lilac">💉</div>
+                        <div class="info-text"><strong>Вакцинація:</strong> {{ 'Є' if animal.vaccinated else 'Немає' }}</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="icon-badge icon-blue">📍</div>
+                        <div class="info-text"><strong>Розташування:</strong> {{ animal.shelter_city }}, {{ animal.shelter_name }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('auth_page') }}" class="adopt-btn">Забрати додому</a>
+        </div>
     </div>
 
-    <div class="animal-info">
-        <h1>{{ animal.name }}</h1>
-        <p><strong>Тип:</strong>{{ animal.animal_type }}</p>
-        <p><strong>Порода:</strong>{{ animal.breed or 'Невідомо' }}</p>
-        <p><strong>Стать:</strong>{{ animal.sex }}</p>
-        <p><strong>Вік:</strong>{{ animal.age_months }}</p>
-        <p><strong>Розмір:</strong>{{ animal.size }}</p>
-        <p><strong>Колір:</strong>{{ animal.color or 'Невідомо' }}</p>
-        <p><strong>Стерилізація:</strong>{{ 'Так' if animal.sterilized else 'Ні' }}</p>
-        <p><strong>Вакцинація:</strong>{{ 'Так' if animal.vaccinated else 'Ні' }}</p>
-        <p><strong>Стан здоров'я:</strong>{{ animal.health_status or 'Не вказано' }}</p>
-        <p><strong>Опис:</strong>{{ animal.description or 'Відсутній' }}</p>
+    <h2 class="animal-sections-title">📜 Історія та деталі</h2>
 
-        <h3>Притулок</h3>
-        <p>{{ animal.shelter_name }}</p>
-        <p>{{ animal.shelter_city }}</p>
-        <p>{{ animal.shelter_phone }}</p>
-        <p>{{ animal.shelter_email }}</p>
+    <div class="animal-details-grid">
+        <div class="detail-card card-story">
+            <h3>💌 Про мене</h3>
+            <p>{{ animal.description or 'Ця тваринка шукає дбайливу родину, яка подарує їй спокій, турботу та безпечний дім🏡'}}</p>
+        </div>
 
-        <a href="{{ url_for('auth_page') }}">Подати заявку на адопцію</a>
+        <div class="detail-card card-home">
+            <h3>🏡Прилаштування</h3>
+            <p>
+                Шукаємо відповідальну родину, готову забезпечити безпечний простір, регулярний догляд, харчування та любов тваринці ❤️‍🩹
+                {% if animal.urgent %}
+                    Для цієї тваринки бажано знайти дім якомога швидше 🙏🏻
+                {% endif %}
+            </p>
+        </div>
     </div>
 </section>
+
+<script>
+    const mainImage = document.getElementById("mainAnimalImage");
+    const thumbs = Array.from(document.querySelectorAll(".thumb-btn"));
+    const prevBtn = document.getElementById("prevPhoto");
+    const nextBtn = document.getElementById("nextPhoto");
+
+    let currentIndex = 0;
+
+    function updatePhoto(index) {
+        if (!thumbs.length) return;
+
+        currentIndex = index;
+        mainImage.src = thumbs[currentIndex].dataset.photo;
+
+        thumbs.forEach((thumb) => thumb.classList.remove("active"));
+        thumbs[currentIndex].classList.add("active");
+    }
+
+    thumbs.forEach((thumb, index) => {
+        thumb.addEventListener("click", () => {
+            updatePhoto(index);
+        });
+    });
+
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+            const newIndex = (currentIndex - 1 + thumbs.length) % thumbs.length;
+            updatePhoto(newIndex);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+            const newIndex = (currentIndex + 1) % thumbs.length;
+            updatePhoto(newIndex);
+        });
+    }
+</script>
 {% endblock %}

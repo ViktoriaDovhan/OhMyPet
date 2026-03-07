@@ -28,6 +28,10 @@
                 {% set sterilized_checked = 'checked' if filters.sterilized else '' %}
                 {% set urgent_checked = 'checked' if filters.urgent else '' %}
 
+                {% set calm_checked = 'checked' if 'Спокійний' in filters.characters else '' %}
+                {% set active_checked = 'checked' if 'Активний' in filters.characters else '' %}
+                {% set kind_checked = 'checked' if 'Лагідний' in filters.characters else '' %}
+
                 <p>Тип тварини</p>
                 <div class="pill-group">
                     <label class="pill-checkbox">
@@ -98,6 +102,26 @@
                     <label class="pill-checkbox">
                         <input type="checkbox" name="size" value="Великий" {{ large_checked }}>
                         <span>Великий</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <p>Характер</p>
+                <div class="pill-group">
+                    <label class="pill-checkbox">
+                        <input type="checkbox" name="character" value="Спокійний" {{ calm_checked }}>
+                        <span>Спокійний</span>
+                    </label>
+
+                    <label class="pill-checkbox">
+                        <input type="checkbox" name="character" value="Активний" {{ active_checked }}>
+                        <span>Активний</span>
+                    </label>
+
+                    <label class="pill-checkbox">
+                        <input type="checkbox" name="character" value="Лагідний" {{ kind_checked }}>
+                        <span>Лагідний</span>
                     </label>
                 </div>
             </div>

@@ -43,6 +43,13 @@
     cursor: pointer;
 }
 
+.filter-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+}
+
 .pill-group {
     display: flex;
     flex-wrap: wrap;
@@ -94,11 +101,6 @@
     background: linear-gradient(90deg, #ccf2f5, #ffdbe8);
 }
 
-.range-info {
-    font-size: 12px;
-    color: #777;
-}
-
 .toggles {
     display: flex;
     flex-direction: column;
@@ -145,12 +147,6 @@
     transform: translateX(20px);
 }
 
-.reset-btn {
-    display: inline-block;
-    text-align: center;
-    text-decoration: none;
-}
-
 .adopt-content h1 {
     font-size: 40px;
     margin-bottom: 30px;
@@ -169,13 +165,6 @@
 
 .details-btn:hover {
     opacity: 0.9;
-}
-
-.filter-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 8px;
 }
 
 .apply-btn {

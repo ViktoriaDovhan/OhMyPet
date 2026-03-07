@@ -18,10 +18,10 @@
                 <a href="#">Про нас</a>
                 <a href="#">Контакти</a>
 
-                {% if session.get('user.id') %}
+                {% if session.get('user_id') %}
                     <a href="{{ url_for('auth.logout') }}">Вихід</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}">Вхід</a>
+                    <a href="{{ url_for('auth_page') }}">Вхід</a>
                 {% endif %}
             </nav>
 
