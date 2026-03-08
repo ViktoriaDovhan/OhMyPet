@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+
+<section class="profile-page">
+    <div class="profile-wrapper">
+        <aside class="profile-sidebar">
+            <div class="profile-sidebar-top">
+                <div class="profile-avatar">
+                    {% if session.get('role') == 'USER' %}
+                        👤
+                    {% elif session.get('role') == 'ADMIN' %}
+                        🏠
+                    {% else %}
+                        ⚙️
+                    {% endif %}
+                </div>
+
+                <h2 class="profile-role-title">{% block profile_title %}{% endblock %}</h2>
+                <p class="profile-role-subtitle">{% block profile_subtitle %}{% endblock %}</p>
+            </div>
+
+            <nav class="profile-menu">
+                {% block profile_menu %}{% endblock %}
+            </nav>
+
+            <div class="profile-sidebar-bottom">
+                <a href="{{ url_for('logout') }}" class="profile-logout-btn">Вийти</a>
+            </div>
+        </aside>
+
+        <div class="profile-content">
+            {% block profile_content %}{% endblock %}
+        </div>
+    </div>
+</section>
+
+{% endblock %}

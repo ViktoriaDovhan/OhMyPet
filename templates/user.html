@@ -1,0 +1,136 @@
+{% extends "profile_layout.html" %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+
+{% block profile_title %}Мій профіль{% endblock %}
+{% block profile_subtitle %}Керування особистими даними та заявками{% endblock %}
+
+{% block profile_menu %}
+    <a href="{{ url_for('user_profile', section='info') }}" class="profile-menu-link {% if section == 'info' %}active{% endif %}">
+        Інформація про себе
+    </a>
+    <a href="{{ url_for('user_profile', section='edit') }}" class="profile-menu-link {% if section == 'edit' %}active{% endif %}">
+        Редагувати профіль
+    </a>
+    <a href="{{ url_for('user_profile', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
+        Мої заявки
+    </a>
+    <a href="{{ url_for('user_profile', section='settings') }}" class="profile-menu-link {% if section == 'settings' %}active{% endif %}">
+        Налаштування
+    </a>
+{% endblock %}
+
+
+{% block profile_content %}
+    {% if section == 'info' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Інформація про себе</h1>
+                <a href="{{ url_for('user_profile', section='edit') }}" class="profile-main-btn">Змінити</a>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Ім’я</span>
+                    <span class="info-value">{{ user.first_name or '—' }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Прізвище</span>
+                    <span class="info-value">{{ user.last_name or '—' }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ user.email }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Телефон</span>
+                    <span class="info-value">{{ user.phone or '—' }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Місто</span>
+                    <span class="info-value">{{ user.city or '—' }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Роль</span>
+                    <span class="info-value">{{ user.role }}</span>
+                </div>
+            </div>
+        </div>
+
+    {% elif section == 'edit' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Редагування профілю</h1>
+            </div>
+
+            <form method="post" action="{{ url_for('update_user_profile') }}" class="profile-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Ім’я</label>
+                        <input type="text" name="first_name" value="{{ user.first_name or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Прізвище</label>
+                        <input type="text" name="last_name" value="{{ user.last_name or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value="{{ user.email or '' }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Телефон</label>
+                        <input type="text" name="phone" value="{{ user.phone or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Місто</label>
+                        <input type="text" name="city" value="{{ user.city or '' }}">
+                    </div>
+                </div>
+
+                <button type="submit" class="profile-main-btn">Зберегти зміни</button>
+            </form>
+        </div>
+
+    {% elif section == 'requests' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Мої заявки</h1>
+            </div>
+
+            {% if requests_list %}
+                <div class="profile-list">
+                    {% for item in requests_list %}
+                        <div class="profile-list-card">
+                            <h3>{{ item.animal_name }}</h3>
+                            <p><strong>Статус:</strong> {{ item.status }}</p>
+                            <p><strong>Повідомлення:</strong> {{ item.message }}</p>
+                            <p><strong>Дата:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-text">У вас поки немає поданих заявок.</p>
+            {% endif %}
+        </div>
+
+    {% elif section == 'settings' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Налаштування</h1>
+            </div>
+
+            <div class="settings-box">
+                <p>Тут пізніше можна додати зміну пароля, сповіщення або інші налаштування.</p>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

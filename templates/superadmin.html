@@ -1,0 +1,55 @@
+{% extends "profile_layout.html" %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+
+{% block profile_title %}Адмін сайту{% endblock %}
+{% block profile_subtitle %}Загальний контроль системи{% endblock %}
+
+{% block profile_menu %}
+    <a href="{{ url_for('superadmin_profile_page', section='users') }}" class="profile-menu-link {% if section == 'users' %}active{% endif %}">
+        Користувачі
+    </a>
+    <a href="{{ url_for('superadmin_profile_page', section='shelters') }}" class="profile-menu-link {% if section == 'shelters' %}active{% endif %}">
+        Притулки
+    </a>
+    <a href="{{ url_for('superadmin_profile_page', section='animals') }}" class="profile-menu-link {% if section == 'animals' %}active{% endif %}">
+        Тварини
+    </a>
+    <a href="{{ url_for('superadmin_profile_page', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
+        Усі заявки
+    </a>
+{% endblock %}
+
+{% block profile_content %}
+
+    <div class="profile-card">
+        {% if section == 'users' %}
+            <div class="profile-card-header">
+                <h1>Користувачі</h1>
+            </div>
+            <div class="settings-box">
+            </div>
+
+        {% elif section == 'shelters' %}
+            <div class="profile-card-header">
+                <h1>Притулки</h1>
+            </div>
+            <div class="settings-box">
+            </div>
+
+        {% elif section == 'animals' %}
+            <div class="profile-card-header">
+                <h1>Тварини</h1>
+            </div>
+            <div class="settings-box">
+            </div>
+
+        {% elif section == 'requests' %}
+            <div class="profile-card-header">
+                <h1>Усі заявки</h1>
+            </div>
+            <div class="settings-box">
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

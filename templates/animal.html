@@ -80,7 +80,11 @@
                 </div>
             </div>
 
-            {% if session.get('user_id') %}
+            {% if session.get('role') == 'ADMIN' and session.get('shelter_id') == animal.shelter_id %}
+                <a href="{{ url_for('shelter_requests', animal_id=animal.id) }}" class="adopt-btn">
+                    Переглянути заявки
+                </a>
+            {% elif session.get('user_id') %}
                 <button type="button" class="adopt-btn" id="openRequestModal">
                     Забрати додому
                 </button>
@@ -95,7 +99,7 @@
                         </p>
 
                         <form method="post" action="{{ url_for('create_adoption_request', animal_id=animal.id) }}">
-                            <textarea name="message" class="request-textarea" placeholder="Наприклад: люблю тварин, маю досвід догляду за тваринками, проживаю у власній квартирі" required></textarea>
+                            <textarea name="message" class="request-textarea" placeholder="Наприклад: люблю тварин, маю досвід догляду за тваринками, проживаю у квартирі" required></textarea>
                             <button type="submit" class="adopt-btn modal-submit-btn">Подати заявку</button>
                         </form>
                     </div>

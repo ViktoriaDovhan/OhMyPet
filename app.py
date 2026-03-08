@@ -154,6 +154,7 @@ def animal_details(animal_id):
             a.vaccinated,
             a.health_status,
             a.description,
+            a.shelter_id,
             s.name AS shelter_name,
             s.city AS shelter_city,
             s.phone AS shelter_phone,
@@ -237,35 +238,47 @@ def my_requests():
 @app.route("/shelter/requests")
 @admin_required
 def shelter_requests():
+    animal_id = request.args.get("animal_id", type=int)
+
     conn = get_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    cur.execute("""
+    query = """
         SELECT 
             r.id,
             r.message,
             r.status,
             r.created_at,
             u.email AS user_email,
+            a.id AS animal_id,
             a.name AS animal_name
         FROM adoption_requests r
         JOIN users u ON u.id = r.user_id
         JOIN animals a ON a.id = r.animal_id
         WHERE a.shelter_id = %s
-        ORDER BY r.created_at DESC
-    """, (session["shelter_id"],))
+    """
 
+    params = [session["shelter_id"]]
+
+    if animal_id:
+        query += " AND a.id = %s"
+        params.append(animal_id)
+
+    query += " ORDER BY r.created_at DESC"
+
+    cur.execute(query, params)
     requests_list = cur.fetchall()
     cur.close()
     conn.close()
 
-    return render_template("shelter_requests.html", requests_list=requests_list)
+    return render_template("shelter_requests.html", requests_list=requests_list, selected_animal_id=animal_id)
 
 
 @app.route("/shelter/requests/<int:request_id>/status", methods=["POST"])
 @admin_required
 def update_request_status(request_id):
     new_status = request.form.get("status")
+    animal_id = request.form.get("animal_id", type=int)
 
     if new_status not in ["NEW", "IN_REVIEW", "APPROVED", "REJECTED"]:
         abort(400)
@@ -283,7 +296,155 @@ def update_request_status(request_id):
     cur.close()
     conn.close()
 
+    if animal_id:
+        return redirect(url_for("shelter_requests", animal_id=animal_id))
+
     return redirect(url_for("shelter_requests"))
+
+
+@app.route("/profile")
+@login_required
+def profile():
+    role = session.get("role")
+
+    if role == "USER":
+        return redirect(url_for("user_profile"))
+
+    if role == "ADMIN":
+        return redirect(url_for("shelter_profile"))
+
+    if role == "SUPERADMIN":
+        return redirect(url_for("superadmin_profile"))
+
+    abort(403)
+
+
+@app.route("/profile/user")
+@login_required
+def user_profile():
+    if session.get("role") != "USER":
+        abort(403)
+
+    section = request.args.get("section", "info")
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+           SELECT id, first_name, last_name, email, phone, city, role
+           FROM users
+           WHERE id = %s
+       """, (session["user_id"],))
+    user = cur.fetchone()
+
+    cur.execute("""
+           SELECT r.id,
+                  r.message,
+                  r.status,
+                  r.created_at,
+                  a.name AS animal_name
+           FROM adoption_requests r
+           JOIN animals a ON a.id = r.animal_id
+           WHERE r.user_id = %s
+           ORDER BY r.created_at DESC
+       """, (session["user_id"],))
+    requests_list = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("user.html", section=section, user=user, requests_list=requests_list)
+
+
+@app.route("/profile/user/update", methods=["POST"])
+@login_required
+def update_user_profile():
+    if session.get("role") != "USER":
+        abort(403)
+
+    first_name = request.form.get("first_name", "").strip()
+    last_name = request.form.get("last_name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    city = request.form.get("city", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE users
+        SET first_name = %s,
+            last_name = %s,
+            email = %s,
+            phone = %s,
+            city = %s
+        WHERE id = %s
+    """, (first_name, last_name, email, phone, city, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("user_profile", section="info"))
+
+
+@app.route("/profile/user")
+@login_required
+def shelter_profile():
+    if session.get("role") != "ADMIN":
+        abort(403)
+
+    section = request.args.get("section", "requests")
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+            SELECT r.id,
+                   r.message,
+                   r.status,
+                   r.created_at,
+                   u.email AS user_email,
+                   a.name AS animal_name
+            FROM adoption_requests r
+            JOIN users u ON u.id = r.user_id
+            JOIN animals a ON a.id = r.animal_id
+            WHERE a.shelter_id = %s
+            ORDER BY r.created_at DESC
+        """, (session["shelter_id"],))
+    requests_list = cur.fetchall()
+
+    cur.execute("""
+            SELECT id, name, animal_type, breed, sex, age_months, is_active
+            FROM animals
+            WHERE shelter_id = %s
+            ORDER BY id DESC
+        """, (session["shelter_id"],))
+    animals_list = cur.fetchall()
+
+    cur.execute("""
+            SELECT id, name, city, phone, email
+            FROM shelters
+            WHERE id = %s
+        """, (session["shelter_id"],))
+    shelter = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list, shelter=shelter)
+
+
+@app.route("/profile/superadmin")
+@login_required
+def superadmin_profile():
+    if session.get("role") != "SUPERADMIN":
+        abort(403)
+
+    section = request.args.get("section", "users")
+
+    return render_template("superadmin.html", section=section)
+
 
 @app.route("/auth")
 def auth_page():

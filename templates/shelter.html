@@ -1,0 +1,156 @@
+{% extends "profile_layout.html" %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+
+{% block profile_title %}Кабінет притулку{% endblock %}
+{% block profile_subtitle %}Заявки, тварини та аналітика{% endblock %}
+
+{% block profile_menu %}
+    <a href="{{ url_for('shelter_profile_page', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
+        Заявки притулку
+    </a>
+    <a href="{{ url_for('shelter_profile_page', section='animals') }}" class="profile-menu-link {% if section == 'animals' %}active{% endif %}">
+        Мої тварини
+    </a>
+    <a href="{{ url_for('shelter_profile_page', section='add_animal') }}" class="profile-menu-link {% if section == 'add_animal' %}active{% endif %}">
+        Додати тварину
+    </a>
+    <a href="{{ url_for('shelter_profile_page', section='analytics') }}" class="profile-menu-link {% if section == 'analytics' %}active{% endif %}">
+        Аналітика
+    </a>
+    <a href="{{ url_for('shelter_profile_page', section='profile') }}" class="profile-menu-link {% if section == 'profile' %}active{% endif %}">
+        Профіль притулку
+    </a>
+{% endblock %}
+
+{% block profile_content %}
+
+    {% if section == 'requests' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Заявки притулку</h1>
+            </div>
+
+            {% if requests_list %}
+                <div class="profile-list">
+                    {% for item in requests_list %}
+                        <div class="profile-list-card">
+                            <h3>{{ item.animal_name }}</h3>
+                            <p><strong>Email користувача:</strong> {{ item.user_email }}</p>
+                            <p><strong>Повідомлення:</strong> {{ item.message }}</p>
+                            <p><strong>Дата:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+
+                            <form method="post" action="{{ url_for('update_request_status', request_id=item.id) }}" class="status-form">
+                                <input type="hidden" name="from_profile" value="1">
+
+                                <select name="status">
+                                    <option value="NEW" {% if item.status == 'NEW' %}selected{% endif %}>NEW</option>
+                                    <option value="IN_REVIEW" {% if item.status == 'IN_REVIEW' %}selected{% endif %}>IN_REVIEW</option>
+                                    <option value="APPROVED" {% if item.status == 'APPROVED' %}selected{% endif %}>APPROVED</option>
+                                    <option value="REJECTED" {% if item.status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
+                                </select>
+
+                                <button type="submit" class="profile-small-btn">Зберегти статус</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-text">Заявок поки немає.</p>
+            {% endif %}
+        </div>
+
+    {% elif section == 'animals' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Мої тварини</h1>
+                <a href="{{ url_for('shelter_profile_page', section='add_animal') }}" class="profile-main-btn">Додати тварину</a>
+            </div>
+
+            {% if animals_list %}
+                <div class="animals-grid">
+                    {% for animal in animals_list %}
+                        <div class="animal-mini-card">
+                            <h3>{{ animal.name }}</h3>
+                            <p><strong>Тип:</strong> {{ animal.animal_type }}</p>
+                            <p><strong>Порода:</strong> {{ animal.breed or '—' }}</p>
+                            <p><strong>Стать:</strong> {{ animal.sex or '—' }}</p>
+                            <p><strong>Вік:</strong> {{ animal.age_months or '—' }} міс.</p>
+                            <p><strong>Статус:</strong> {% if animal.is_active %}Активна{% else %}Неактивна{% endif %}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-text">У притулку поки немає доданих тварин.</p>
+            {% endif %}
+        </div>
+
+    {% elif section == 'add_animal' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Додати тварину</h1>
+            </div>
+
+            <div class="settings-box">
+                <p>Тут буде форма додавання тварини. Після цього можна окремо підключити завантаження фото і “recommended type”.</p>
+            </div>
+        </div>
+
+    {% elif section == 'analytics' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Аналітика</h1>
+            </div>
+
+            <div class="analytics-preview-grid">
+                <div class="analytics-box">
+                    <h3>Прогноз корму</h3>
+                    <p>Блок для прогнозу споживання корму на 7 днів.</p>
+                </div>
+
+                <div class="analytics-box">
+                    <h3>NLP модуль</h3>
+                    <p>Блок для аналізу нотаток та пошуку ключових слів.</p>
+                </div>
+
+                <div class="analytics-box">
+                    <h3>CV модуль</h3>
+                    <p>Блок для рекомендації типу тварини при додаванні.</p>
+                </div>
+            </div>
+        </div>
+
+    {% elif section == 'profile' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Профіль притулку</h1>
+            </div>
+
+            {% if shelter %}
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Назва</span>
+                        <span class="info-value">{{ shelter.name or '—' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Місто</span>
+                        <span class="info-value">{{ shelter.city or '—' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Телефон</span>
+                        <span class="info-value">{{ shelter.phone or '—' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">{{ shelter.email or '—' }}</span>
+                    </div>
+                </div>
+            {% else %}
+                <p class="empty-text">Інформацію про притулок не знайдено.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,10 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/requests.css') }}">
 
-</body>
-</html>
+<section class="requests-page">
+    <div class="requests-container">
+        <h1>Мої заявки</h1>
+
+        {% if requests_list %}
+            <div class="requests-list">
+                {% for item in requests_list %}
+                    <div class="requests-card">
+                        <h3>{{ item.animal_name }}</h3>
+                        <p><strong>Статус:</strong> {{ item.status }}</p>
+                        <p><strong>Повідомлення:</strong> {{ item.message }}</p>
+                        <p><strong>Дата подання:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-text">У вас поки немає поданих заявок</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

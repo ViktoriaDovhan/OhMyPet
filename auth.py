@@ -45,7 +45,7 @@ def login():
 
         cur.execute(
             """
-            SELECT id, password_hash, role
+            SELECT id, password_hash, role, shelter_id
             FROM users
             WHERE email = %s
             """, (email,)
@@ -59,6 +59,7 @@ def login():
         if user and bcrypt.checkpw(password.encode(), user[1].encode()):
             session["user_id"] = user[0]
             session["role"] = user[2]
+            session["shelter_id"] = user[3]
             return redirect(url_for("main"))
 
         return render_template("auth.html", active_tab="login", error="Неправильний email або пароль")
