@@ -1,12 +1,32 @@
-from flask import Flask, render_template, request, abort, redirect, url_for
+from flask import Flask, render_template, request, abort, redirect, url_for, session
 from psycopg2.extras import RealDictCursor
 from auth import auth
 from database.db import get_connection
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = "secret-key"
 
 app.register_blueprint(auth)
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("auth.login"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("auth.login"))
+        if session.get("role") != "ADMIN":
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
 
 
 @app.route('/')
@@ -164,6 +184,106 @@ def animal_details(animal_id):
 
     return render_template("animal.html", animal=animal, photos=photos)
 
+
+@app.route("/animal/<int:animal_id>/request", methods=["POST"])
+@login_required
+def create_adoption_request(animal_id):
+    message = request.form.get("message", "").strip()
+
+    if not message:
+        return redirect(url_for("animal_details", animal_id=animal_id))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO adoption_requests (user_id, animal_id, message, status)
+        VALUES (%s, %s, %s, 'NEW')
+    """, (session["user_id"], animal_id, message))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("my_requests"))
+
+
+@app.route("/my-requests")
+@login_required
+def my_requests():
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT 
+            r.id,
+            r.message,
+            r.status,
+            r.created_at,
+            a.name AS animal_name
+        FROM adoption_requests r
+        JOIN animals a ON a.id = r.animal_id
+        WHERE r.user_id = %s
+        ORDER BY r.created_at DESC
+    """, (session["user_id"],))
+
+    requests_list = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("my_requests.html", requests_list=requests_list)
+
+
+@app.route("/shelter/requests")
+@admin_required
+def shelter_requests():
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT 
+            r.id,
+            r.message,
+            r.status,
+            r.created_at,
+            u.email AS user_email,
+            a.name AS animal_name
+        FROM adoption_requests r
+        JOIN users u ON u.id = r.user_id
+        JOIN animals a ON a.id = r.animal_id
+        WHERE a.shelter_id = %s
+        ORDER BY r.created_at DESC
+    """, (session["shelter_id"],))
+
+    requests_list = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("shelter_requests.html", requests_list=requests_list)
+
+
+@app.route("/shelter/requests/<int:request_id>/status", methods=["POST"])
+@admin_required
+def update_request_status(request_id):
+    new_status = request.form.get("status")
+
+    if new_status not in ["NEW", "IN_REVIEW", "APPROVED", "REJECTED"]:
+        abort(400)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE adoption_requests
+        SET status = %s
+        WHERE id = %s
+    """, (new_status, request_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_requests"))
 
 @app.route("/auth")
 def auth_page():

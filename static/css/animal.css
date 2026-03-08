@@ -205,6 +205,7 @@
     justify-content: center;
     width: 100%;
     padding: 16px 22px;
+    border: none;
     border-radius: 999px;
     background: linear-gradient(135deg, #f5a8c6, #d7b8ff);
     color: white;
@@ -264,6 +265,111 @@
 
 .card-home {
     background: linear-gradient(135deg, #dff3ff, #dff6e7);
+}
+
+.request-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 30, 0.28);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.request-modal-overlay.active {
+    display: flex;
+}
+
+.request-modal {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border-radius: 28px;
+    padding: 32px 28px 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    animation: modalShow 0.2s ease;
+}
+
+@keyframes modalShow {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.request-modal h3 {
+    margin: 0 0 10px 0;
+    font-size: 30px;
+    font-weight: 800;
+    color: #222;
+}
+
+.request-modal-subtitle {
+    margin: 0 0 18px 0;
+    font-size: 17px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.request-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 42px;
+    height: 42px;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    border-radius: 50%;
+    background: #f4f4f8;
+    color: #444;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.request-modal-close:hover {
+    background: #ececf4;
+}
+
+.request-textarea {
+    width: 100%;
+    min-height: 170px;
+    resize: vertical;
+    padding: 18px 20px;
+    border: 2px solid #f0d9ea;
+    border-radius: 22px;
+    font-size: 17px;
+    line-height: 1.5;
+    color: #333;
+    background: #fff;
+    box-sizing: border-box;
+    margin-bottom: 18px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.request-textarea:focus {
+    border-color: #d8b1e9;
+    box-shadow: 0 0 0 4px rgba(216, 177, 233, 0.18);
+}
+
+.modal-submit-btn {
+    margin-top: 0;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
 
 @media (max-width: 1100px) {
