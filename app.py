@@ -71,6 +71,7 @@ def adopt():
             ) AS photo_url
         FROM animals a
         WHERE COALESCE(a.is_adopted, FALSE) = FALSE
+          AND COALESCE(a.is_active, TRUE) = TRUE
     """
 
     params = []
@@ -320,7 +321,7 @@ def update_user_profile():
     return redirect(url_for("user_profile", section="info"))
 
 
-@app.route("/profile/user")
+@app.route("/profile/shelter")
 @login_required
 def shelter_profile():
     if session.get("role") != "ADMIN":

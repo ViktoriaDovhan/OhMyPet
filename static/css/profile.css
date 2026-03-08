@@ -133,7 +133,7 @@
     cursor: pointer;
 }
 
-.profile-small-btn {
+.save-btn {
     border: none;
     padding: 12px 18px;
     border-radius: 999px;
@@ -269,7 +269,6 @@
 }
 
 .empty-text {
-    margin: 0;
     font-size: 18px;
     color: #666;
 }

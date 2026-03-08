@@ -6,19 +6,19 @@
 {% block profile_subtitle %}Заявки, тварини та аналітика{% endblock %}
 
 {% block profile_menu %}
-    <a href="{{ url_for('shelter_profile_page', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
+    <a href="{{ url_for('shelter_profile', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
         Заявки притулку
     </a>
-    <a href="{{ url_for('shelter_profile_page', section='animals') }}" class="profile-menu-link {% if section == 'animals' %}active{% endif %}">
+    <a href="{{ url_for('shelter_profile', section='animals') }}" class="profile-menu-link {% if section == 'animals' %}active{% endif %}">
         Мої тварини
     </a>
-    <a href="{{ url_for('shelter_profile_page', section='add_animal') }}" class="profile-menu-link {% if section == 'add_animal' %}active{% endif %}">
+    <a href="{{ url_for('shelter_profile', section='add_animal') }}" class="profile-menu-link {% if section == 'add_animal' %}active{% endif %}">
         Додати тварину
     </a>
-    <a href="{{ url_for('shelter_profile_page', section='analytics') }}" class="profile-menu-link {% if section == 'analytics' %}active{% endif %}">
+    <a href="{{ url_for('shelter_profile', section='analytics') }}" class="profile-menu-link {% if section == 'analytics' %}active{% endif %}">
         Аналітика
     </a>
-    <a href="{{ url_for('shelter_profile_page', section='profile') }}" class="profile-menu-link {% if section == 'profile' %}active{% endif %}">
+    <a href="{{ url_for('shelter_profile', section='profile') }}" class="profile-menu-link {% if section == 'profile' %}active{% endif %}">
         Профіль притулку
     </a>
 {% endblock %}
@@ -84,7 +84,7 @@
         <div class="profile-card">
             <div class="profile-card-header">
                 <h1>Мої тварини</h1>
-                <a href="{{ url_for('shelter_profile_page', section='add_animal') }}" class="profile-main-btn">Додати тварину</a>
+                <a href="{{ url_for('shelter_profile', section='add_animal') }}" class="profile-main-btn">Додати тварину</a>
             </div>
 
             {% if animals_list %}
