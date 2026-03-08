@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort, redirect, url_for
 from psycopg2.extras import RealDictCursor
 from auth import auth
 from database.db import get_connection
@@ -167,7 +167,7 @@ def animal_details(animal_id):
 
 @app.route("/auth")
 def auth_page():
-    return render_template("auth.html")
+    return redirect(url_for("auth.login"))
 
 
 if __name__ == "__main__":

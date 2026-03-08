@@ -2,41 +2,71 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Login / Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if active_tab == 'register' %}Реєстрація{% else %}Вхід{% endif %} | OhMyPet</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body>
 
 <div class="page">
-
     <div class="card">
 
-        <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active">Вхід</div>
-            <div class="tab">Реєстрація</div>
+            <a href="{{ url_for('auth.login') }}"
+               class="tab {% if active_tab != 'register' %}active{% endif %}">
+                Вхід
+            </a>
+
+            <a href="{{ url_for('auth.register') }}"
+               class="tab {% if active_tab == 'register' %}active{% endif %}">
+                Реєстрація
+            </a>
         </div>
 
-        <!-- Card body -->
         <div class="card-body">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet" class="logo">
 
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
+            {% if active_tab == 'register' %}
+                <h1>Створити акаунт 🐾</h1>
+                <p class="subtitle">Зареєструйтесь, щоб знаходити улюбленців та подавати заявки</p>
+            {% else %}
+                <h1>З поверненням! 🐾</h1>
+                <p class="subtitle">Увійдіть, щоб продовжити пошук друга</p>
+            {% endif %}
 
-            <h1>З поверненням! 🐾</h1>
-            <p class="subtitle">Увійдіть, щоб продовжити пошук друга</p>
+            {% if error %}
+                <div class="auth-message error">
+                    {{ error }}
+                </div>
+            {% endif %}
 
-            <form method="post">
-                <input type="email" placeholder="Email" required>
-                <input type="password" placeholder="Пароль" required>
+            {% if active_tab == 'register' %}
+                <form method="post" action="{{ url_for('auth.register') }}">
+                    <input type="email" name="email" placeholder="Email" required>
+                    <input type="password" name="password" placeholder="Пароль" required>
+                    <button type="submit">Зареєструватися</button>
+                </form>
 
-                <button type="submit">Увійти</button>
-            </form>
+                <p class="switch-text">
+                    Уже маєте акаунт?
+                    <a href="{{ url_for('auth.login') }}">Увійти</a>
+                </p>
+            {% else %}
+                <form method="post" action="{{ url_for('auth.login') }}">
+                    <input type="email" name="email" placeholder="Email" required>
+                    <input type="password" name="password" placeholder="Пароль" required>
+                    <button type="submit">Увійти</button>
+                </form>
 
-            <a href="#" class="forgot">Забули пароль?</a>
+                <a href="#" class="forgot">Забули пароль?</a>
 
+                <p class="switch-text">
+                    Ще не маєте акаунта?
+                    <a href="{{ url_for('auth.register') }}">Зареєструватися</a>
+                </p>
+            {% endif %}
         </div>
     </div>
-
 </div>
 
 </body>

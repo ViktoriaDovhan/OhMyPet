@@ -39,48 +39,48 @@
             <div class="animal-info-card">
                 <div class="info-list">
                     <div class="info-row">
-                        <div class="icon-badge icon-pink">♀</div>
+                        <div class="icon-badge ">♀</div>
                         <div class="info-text"><strong>Стать:</strong> {{ animal.sex }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-lilac">📅</div>
+                        <div class="icon-badge ">📅</div>
                         <div class="info-text"><strong>Вік:</strong> {{ animal.age_months }} місяців</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-peach">🐾</div>
+                        <div class="icon-badge ">🐾</div>
                         <div class="info-text"><strong>Порода:</strong> {{ animal.breed or 'Без породи' }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-pink">🎨</div>
+                        <div class="icon-badge ">🎨</div>
                         <div class="info-text"><strong>Забарвлення:</strong> {{ animal.color or 'Не вказано' }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-green">💜</div>
+                        <div class="icon-badge ">💜</div>
                         <div class="info-text"><strong>Характер:</strong> {{ animal.character or 'Не вказано' }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-peach">❤</div>
+                        <div class="icon-badge ">❤</div>
                         <div class="info-text"><strong>Стерилізація:</strong> {{ 'Є' if animal.sterilized else 'Немає' }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-lilac">💉</div>
+                        <div class="icon-badge ">💉</div>
                         <div class="info-text"><strong>Вакцинація:</strong> {{ 'Є' if animal.vaccinated else 'Немає' }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="icon-badge icon-blue">📍</div>
+                        <div class="icon-badge ">📍</div>
                         <div class="info-text"><strong>Розташування:</strong> {{ animal.shelter_city }}, {{ animal.shelter_name }}</div>
                     </div>
                 </div>
             </div>
 
-            <a href="{{ url_for('auth_page') }}" class="adopt-btn">Забрати додому</a>
+            <a href="{{ url_for('auth.login') }}" class="adopt-btn">Забрати додому</a>
         </div>
     </div>
 

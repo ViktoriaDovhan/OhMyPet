@@ -31,7 +31,7 @@ def register():
 
         return redirect(url_for("auth.login"))
 
-    return render_template("register.html")
+    return render_template("auth.html", active_tab="register")
 
 
 @auth.route("/login", methods=["GET", "POST"])
@@ -61,9 +61,9 @@ def login():
             session["role"] = user[2]
             return redirect(url_for("main"))
 
-        return "Invalid email or password"
+        return render_template("auth.html", active_tab="login", error="Неправильний email або пароль")
 
-    return render_template("login.html")
+    return render_template("auth.html", active_tab="login")
 
 
 @auth.route("/logout")

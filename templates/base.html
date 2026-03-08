@@ -21,7 +21,7 @@
                 {% if session.get('user_id') %}
                     <a href="{{ url_for('auth.logout') }}">Вихід</a>
                 {% else %}
-                    <a href="{{ url_for('auth_page') }}">Вхід</a>
+                    <a href="{{ url_for('auth.login') }}">Вхід</a>
                 {% endif %}
             </nav>
 
