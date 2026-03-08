@@ -206,72 +206,7 @@ def create_adoption_request(animal_id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("my_requests"))
-
-
-@app.route("/my-requests")
-@login_required
-def my_requests():
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute("""
-        SELECT 
-            r.id,
-            r.message,
-            r.status,
-            r.created_at,
-            a.name AS animal_name
-        FROM adoption_requests r
-        JOIN animals a ON a.id = r.animal_id
-        WHERE r.user_id = %s
-        ORDER BY r.created_at DESC
-    """, (session["user_id"],))
-
-    requests_list = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    return render_template("my_requests.html", requests_list=requests_list)
-
-
-@app.route("/shelter/requests")
-@admin_required
-def shelter_requests():
-    animal_id = request.args.get("animal_id", type=int)
-
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    query = """
-        SELECT 
-            r.id,
-            r.message,
-            r.status,
-            r.created_at,
-            u.email AS user_email,
-            a.id AS animal_id,
-            a.name AS animal_name
-        FROM adoption_requests r
-        JOIN users u ON u.id = r.user_id
-        JOIN animals a ON a.id = r.animal_id
-        WHERE a.shelter_id = %s
-    """
-
-    params = [session["shelter_id"]]
-
-    if animal_id:
-        query += " AND a.id = %s"
-        params.append(animal_id)
-
-    query += " ORDER BY r.created_at DESC"
-
-    cur.execute(query, params)
-    requests_list = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    return render_template("shelter_requests.html", requests_list=requests_list, selected_animal_id=animal_id)
+    return redirect(url_for("user_profile", section="requests"))
 
 
 @app.route("/shelter/requests/<int:request_id>/status", methods=["POST"])
@@ -296,10 +231,7 @@ def update_request_status(request_id):
     cur.close()
     conn.close()
 
-    if animal_id:
-        return redirect(url_for("shelter_requests", animal_id=animal_id))
-
-    return redirect(url_for("shelter_requests"))
+    return redirect(url_for("shelter_profile", section="requests", animal_id=animal_id))
 
 
 @app.route("/profile")
@@ -395,23 +327,33 @@ def shelter_profile():
         abort(403)
 
     section = request.args.get("section", "requests")
+    animal_id = request.args.get("animal_id", type=int)
 
     conn = get_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    cur.execute("""
+    query = """
             SELECT r.id,
                    r.message,
                    r.status,
                    r.created_at,
                    u.email AS user_email,
+                   a.id AS animal_id,
                    a.name AS animal_name
             FROM adoption_requests r
             JOIN users u ON u.id = r.user_id
             JOIN animals a ON a.id = r.animal_id
             WHERE a.shelter_id = %s
-            ORDER BY r.created_at DESC
-        """, (session["shelter_id"],))
+        """
+    params = [session["shelter_id"]]
+
+    if animal_id:
+        query += " AND a.id = %s"
+        params.append(animal_id)
+
+    query += " ORDER BY r.created_at DESC"
+
+    cur.execute(query,params)
     requests_list = cur.fetchall()
 
     cur.execute("""
@@ -432,7 +374,7 @@ def shelter_profile():
     cur.close()
     conn.close()
 
-    return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list, shelter=shelter)
+    return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list, shelter=shelter, selected_animal_id=animal_id)
 
 
 @app.route("/profile/superadmin")

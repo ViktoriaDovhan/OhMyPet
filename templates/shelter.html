@@ -41,16 +41,36 @@
                             <p><strong>Дата:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
 
                             <form method="post" action="{{ url_for('update_request_status', request_id=item.id) }}" class="status-form">
-                                <input type="hidden" name="from_profile" value="1">
+                                {% if selected_animal_id %}
+                                    <input type="hidden" name="animal_id" value="{{ selected_animal_id }}">
+                                {% endif %}
 
                                 <select name="status">
-                                    <option value="NEW" {% if item.status == 'NEW' %}selected{% endif %}>NEW</option>
-                                    <option value="IN_REVIEW" {% if item.status == 'IN_REVIEW' %}selected{% endif %}>IN_REVIEW</option>
-                                    <option value="APPROVED" {% if item.status == 'APPROVED' %}selected{% endif %}>APPROVED</option>
-                                    <option value="REJECTED" {% if item.status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
-                                </select>
+                                    {% if item.status == 'NEW' %}
+                                        <option value="NEW" selected>NEW</option>
+                                    {% else %}
+                                        <option value="NEW">NEW</option>
+                                    {% endif %}
 
-                                <button type="submit" class="profile-small-btn">Зберегти статус</button>
+                                    {% if item.status == 'IN_REVIEW' %}
+                                        <option value="IN_REVIEW" selected>IN_REVIEW</option>
+                                    {% else %}
+                                        <option value="IN_REVIEW">IN_REVIEW</option>
+                                    {% endif %}
+
+                                    {% if item.status == 'APPROVED' %}
+                                        <option value="APPROVED" selected>APPROVED</option>
+                                    {% else %}
+                                        <option value="APPROVED">APPROVED</option>
+                                    {% endif %}
+
+                                    {% if item.status == 'REJECTED' %}
+                                        <option value="REJECTED" selected>REJECTED</option>
+                                    {% else %}
+                                        <option value="REJECTED">REJECTED</option>
+                                    {% endif %}
+                                </select>
+                                <button type="submit" class="save-btn">Зберегти статус</button>
                             </form>
                         </div>
                     {% endfor %}

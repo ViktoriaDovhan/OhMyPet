@@ -81,7 +81,7 @@
             </div>
 
             {% if session.get('role') == 'ADMIN' and session.get('shelter_id') == animal.shelter_id %}
-                <a href="{{ url_for('shelter_requests', animal_id=animal.id) }}" class="adopt-btn">
+                <a href="{{ url_for('shelter_profile', section='requests', animal_id=animal.id) }}" class="adopt-btn">
                     Переглянути заявки
                 </a>
             {% elif session.get('user_id') %}
