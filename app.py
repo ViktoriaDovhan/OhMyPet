@@ -5,6 +5,7 @@ from database.db import get_connection
 from functools import wraps
 import os, uuid
 from werkzeug.utils import secure_filename
+from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = "secret-key"
@@ -58,7 +59,39 @@ def auth_page():
 
 @app.route('/')
 def main():
-    return render_template("main.html")
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.animal_type,
+            a.sex,
+            a.age_months,
+            a.size,
+            COALESCE(
+                (
+                    SELECT ap.photo_url
+                    FROM animal_photos ap
+                    WHERE ap.animal_id = a.id
+                    ORDER BY ap.is_main DESC, ap.id ASC
+                    LIMIT 1
+                ),
+                'images/no-image.png'
+            ) AS photo_url
+        FROM animals a
+        WHERE COALESCE(a.is_adopted, FALSE) = FALSE
+          AND COALESCE(a.is_active, TRUE) = TRUE
+        ORDER BY a.id DESC
+        LIMIT 4
+    """)
+    animals = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("main.html", animals=animals)
 
 
 @app.route('/adopt')
@@ -104,8 +137,19 @@ def adopt():
     params = []
 
     if selected_types:
-        query += " AND a.animal_type = ANY(%s)"
-        params.append(selected_types)
+        type_conditions = []
+
+        normal_types = [t for t in selected_types if t != "Інші"]
+
+        if normal_types:
+            type_conditions.append("a.animal_type = ANY(%s)")
+            params.append(normal_types)
+
+        if "Інші" in selected_types:
+            type_conditions.append("a.animal_type IS NOT NULL AND a.animal_type NOT IN ('Кіт', 'Пес')")
+
+        if type_conditions:
+            query += " AND (" + " OR ".join(type_conditions) + ")"
 
     if selected_sexes:
         query += " AND a.sex = ANY(%s)"
@@ -370,6 +414,14 @@ def shelter_profile():
     section = request.args.get("section", "requests")
     animal_id = request.args.get("animal_id", type=int)
 
+    analytics_module = request.args.get("module", "forecast")
+    forecast_days = request.args.get("days", default=7, type=int)
+    edit_food_id = request.args.get("edit_food_id", type=int)
+    food_to_edit = None
+
+    if forecast_days not in [7, 14, 30]:
+        forecast_days = 7
+
     conn = get_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -439,10 +491,82 @@ def shelter_profile():
 
     shelter = cur.fetchone()
 
+    food_history = []
+    forecast_rows = []
+    forecast_daily = None
+    forecast_total = None
+    forecast_per_animal = None
+    current_animals = 0
+    alpha_value = 0.45
+    reserve_percent = 5
+    recommended_total = None
+
+    cur.execute("""
+        SELECT COUNT(*) AS count
+        FROM animals
+        WHERE shelter_id = %s
+          AND COALESCE(is_active, TRUE) = TRUE
+          AND COALESCE(is_adopted, FALSE) = FALSE
+    """, (session["shelter_id"],))
+    current_animals = cur.fetchone()["count"]
+
+    cur.execute("""
+        SELECT id, "date", kg_used, animals_count
+        FROM food_consumption
+        WHERE shelter_id = %s
+        ORDER BY "date" DESC
+    """, (session["shelter_id"],))
+    food_history = cur.fetchall()
+
+    if edit_food_id:
+        cur.execute("""
+            SELECT id, "date", kg_used, animals_count
+            FROM food_consumption
+            WHERE id = %s AND shelter_id = %s
+        """, (edit_food_id, session["shelter_id"]))
+        food_to_edit = cur.fetchone()
+
+    do_forecast = section == "analytics" and analytics_module == "forecast" and request.args.get("forecast") == "1"
+
+    if do_forecast and food_history and current_animals > 0:
+        history_asc = list(reversed(food_history))
+
+        rates = []
+        for row in history_asc:
+            animals_cnt = int(row["animals_count"]) if row["animals_count"] else 0
+            kg_used = float(row["kg_used"]) if row["kg_used"] is not None else 0
+
+            if animals_cnt > 0:
+                rate_per_animal = kg_used / animals_cnt
+                rates.append(rate_per_animal)
+
+        if rates:
+            smoothed_value = rates[0]
+
+            for value in rates[1:]:
+                smoothed_value = alpha_value * value + (1 - alpha_value) * smoothed_value
+
+            forecast_per_animal = round(smoothed_value, 3)
+            forecast_daily = round(smoothed_value * current_animals, 2)
+            forecast_total = round(forecast_daily * forecast_days, 2)
+            recommended_total = round(forecast_total * (1 + reserve_percent / 100), 2)
+
+            last_date = max(row["date"] for row in food_history)
+
+            for i in range(1, forecast_days + 1):
+                forecast_rows.append({
+                    "date": last_date + timedelta(days=i),
+                    "kg_used": forecast_daily,
+                    "animals_count": current_animals
+                })
+
     cur.close()
     conn.close()
 
-    return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list, shelter=shelter, selected_animal_id=animal_id)
+    return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list,
+                           shelter=shelter, selected_animal_id=animal_id, food_history=food_history, forecast_rows=forecast_rows, forecast_daily=forecast_daily,
+                           forecast_total=forecast_total, forecast_per_animal=forecast_per_animal, current_animals=current_animals, alpha_value=alpha_value,
+                           reserve_percent=reserve_percent, recommended_total=recommended_total, analytics_module=analytics_module, forecast_days=forecast_days, edit_food_id=edit_food_id, food_to_edit=food_to_edit)
 
 
 @app.route("/profile/superadmin")
@@ -454,6 +578,89 @@ def superadmin_profile():
     section = request.args.get("section", "users")
 
     return render_template("superadmin.html", section=section)
+
+
+@app.route("/profile/shelter/food/add", methods=["POST"])
+@admin_required
+def add_food_consumption():
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    date_value = request.form.get("date")
+    kg_used = request.form.get("kg_used", type=float)
+    animals_count = request.form.get("animals_count", type=int)
+
+    if not date_value or kg_used is None or animals_count is None:
+        return redirect(url_for("shelter_profile", section="analytics", module="forecast"))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO food_consumption (shelter_id, "date", kg_used, animals_count)
+        VALUES (%s, %s, %s, %s)
+    """, (shelter_id, date_value, kg_used, animals_count))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="analytics", module="forecast"))
+
+
+@app.route("/profile/shelter/food/<int:food_id>/update", methods=["POST"])
+@admin_required
+def update_food_consumption(food_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    date_value = request.form.get("date")
+    kg_used = request.form.get("kg_used", type=float)
+    animals_count = request.form.get("animals_count", type=int)
+
+    if not date_value or kg_used is None or animals_count is None:
+        return redirect(url_for("shelter_profile", section="analytics", module="forecast", edit_food_id=food_id))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE food_consumption
+        SET "date" = %s,
+            kg_used = %s,
+            animals_count = %s
+        WHERE id = %s AND shelter_id = %s
+    """, (date_value, kg_used, animals_count, food_id, shelter_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="analytics", module="forecast"))
+
+
+@app.route("/profile/shelter/food/<int:food_id>/delete", methods=["POST"])
+@admin_required
+def delete_food_consumption(food_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM food_consumption
+        WHERE id = %s AND shelter_id = %s
+    """, (food_id, shelter_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="analytics", module="forecast"))
 
 
 @app.route("/profile/shelter/animal/add", methods=["POST"])

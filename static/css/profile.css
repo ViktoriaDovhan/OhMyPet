@@ -500,6 +500,229 @@
     opacity: 0.92;
 }
 
+.analytics-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.analytics-block {
+    padding: 24px;
+    border-radius: 24px;
+    background: #faf8fc;
+    border: 1px solid #f0e7f4;
+}
+
+.analytics-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.analytics-block-header h3 {
+    margin: 0;
+    font-size: 28px;
+    color: #222;
+}
+
+.analytics-description {
+    margin: 0 0 20px 0;
+    color: #666;
+    font-size: 15px;
+}
+
+.analytics-mini-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.analytics-mini-card {
+    background: white;
+    border: 1px solid #eee3f4;
+    border-radius: 20px;
+    padding: 18px;
+}
+
+.analytics-mini-label {
+    display: block;
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 8px;
+}
+
+.analytics-mini-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    color: #222;
+}
+
+.analytics-table-wrap {
+    margin-top: 18px;
+}
+
+.analytics-table-wrap h4 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    color: #222;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.analytics-table th,
+.analytics-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #f0e7f4;
+    font-size: 15px;
+}
+
+.analytics-table th {
+    background: #f8f3fb;
+    color: #444;
+    font-weight: 700;
+}
+
+.analytics-table tr:last-child td {
+    border-bottom: none;
+}
+
+.analytics-tabs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.analytics-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: #f7f2fb;
+    border: 1px solid #eadff2;
+    color: #5d5369;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.analytics-tab-btn.active {
+    background: linear-gradient(90deg, #eca3c3 0%, #c7a6f3 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.forecast-range-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.forecast-range-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid #e7dbee;
+    color: #64586f;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.forecast-range-btn.active {
+    background: #f4e8f8;
+    border-color: #d7bde5;
+    color: #4b3f56;
+}
+
+.analytics-form-block {
+    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 22px;
+    background: white;
+    border: 1px solid #eee3f4;
+}
+
+.analytics-form-block h4 {
+    margin: 0 0 14px 0;
+    font-size: 20px;
+    color: #222;
+}
+
+.analytics-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.analytics-form-btn-wrap {
+    display: flex;
+    align-items: end;
+}
+
+.analytics-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.edit-mode {
+    border: 1px solid #dcc6ea;
+    background: #fcf8ff;
+}
+
+.table-action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.table-action-buttons form {
+    margin: 0;
+}
+
+.table-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.table-action-btn.edit {
+    background: #f4e8f8;
+    color: #4b3f56;
+}
+
+.table-action-btn.delete {
+    background: #f9e7ea;
+    color: #b14963;
+}
+
 @media (max-width: 1100px) {
     .profile-wrapper {
         grid-template-columns: 1fr;
@@ -507,6 +730,10 @@
 
     .profile-sidebar {
         position: static;
+    }
+
+    .analytics-form-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -531,6 +758,10 @@
     }
 
     .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-mini-cards {
         grid-template-columns: 1fr;
     }
 }

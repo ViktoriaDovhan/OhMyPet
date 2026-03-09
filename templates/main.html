@@ -8,78 +8,54 @@
     </div>
 
     <div class="hero-text">
-        <h1>Знайди друга серця з OhMyPet!🐾</h1>
-        <div class="search-box">
-            <div class="input-group">
-                <span class="icon">📍</span>
-                <input type="text" placeholder="Місто(Наприклад: Київ)" disabled>
-            </div>
-            <div class="divider"></div>
-            <div class="input-group">
-                <span class="icon">🐶</span>
-                <select>
-                    <option>Кого бажаєте взяти?</option>
-                    <option>Котик</option>
-                    <option>Собачка</option>
-                    <option>Хом'ячок</option>
-                </select>
-            </div>
-            <button class="btn-main">Знайти друга</button>
+        <h1>Знайди друга серця з OhMyPet! 🐾</h1>
+
+        <div class="hero-actions">
+            <a href="{{ url_for('adopt') }}" class="hero-main-btn">Почати пошук</a>
         </div>
     </div>
 </section>
 
 <section class="pets">
     <h2>Наші тваринки</h2>
+
     <div class="pet-grid">
-        <div class="pet-card purple">
-            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
-            <h3>Ракель</h3>
-            <p>Вік: 1,5 року</p>
-            <p>Стать: хлопчик</p>
-            <button>Детальніше ♡</button>
-        </div>
-        <div class="pet-card peach">
-            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
-            <h3>Сніжинка</h3>
-            <p>Вік: 5 років</p>
-            <p>Стать: дівчинка</p>
-            <button>Детальніше ♡</button>
-        </div>
-        <div class="pet-card green">
-            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
-            <h3>Сніжинка</h3>
-            <p>Вік: 5 років</p>
-            <p>Стать: дівчинка</p>
-            <button>Детальніше ♡</button>
-        </div>
-        <div class="pet-card blue">
-            <img src="{{ url_for('static', filename='images/rakel.jpg') }}">
-            <h3>Мурчик</h3>
-            <p>Вік: 4 роки</p>
-            <p>Стать: хлопчик</p>
-            <button>Детальніше ♡</button>
-        </div>
+        {% for animal in animals %}
+            <div class="pet-card main-pet-card">
+                <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}">
+
+                <h3>{{ animal.name }}</h3>
+                <p>Вік: {{ animal.age_months }} міс.</p>
+                <p>Стать: {{ animal.sex }}</p>
+                <p>Тип: {{ animal.animal_type }}</p>
+                <p>Розмір: {{ animal.size }}</p>
+
+                <a href="{{ url_for('animal_details', animal_id=animal.id) }}" class="home-details-btn">Детальніше ♡</a>
+            </div>
+        {% else %}
+            <p>Поки що тваринок для показу немає.</p>
+        {% endfor %}
     </div>
+
     <div class="more-pets">
         <h3>Ще багато хвостиків чекають на дім 🏡</h3>
-        <a href="#" class="more-pets-btn">Подивитись усіх</a>
+        <a href="{{ url_for('adopt') }}" class="more-pets-btn">Подивитись усіх</a>
+        <div class="info-cards">
+        <div class="info-card ">
+            <h4>Інтелектуальний підбір 🧠</h4>
+            <p>Знаходимо ідеального друга за вашими вподобаннями</p>
+            <a href="{{ url_for('adopt') }}" class="info-card-btn">Перейти</a>
+        </div>
+
+        <div class="info-card ">
+            <h4>Прогноз потреб у кормі 🥣</h4>
+            <p>Розрахунок харчування для здорового життя тваринки</p>
+            <a href="{{ url_for('auth.login') }}" class="info-card-btn">Перейти</a>
+        </div>
     </div>
-    <div class="info-cards">
-    <div class="info-card">
-        <h4>Інтелектуальний підбір 🧠</h4>
-        <p>Знаходимо ідеального друга за вашими вподобаннями</p>
-        <a href="#" class="info-card-btn">Перейти</a>
     </div>
 
-    <div class="info-card">
-        <h4>Прогноз потреб у кормі 🥣</h4>
-        <p>Розрахунок харчування для здорового життя тваринки</p>
-        <a href="#" class="info-card-btn">Перейти</a>
-    </div>
-</div>
+
 </section>
-
-
 
 {% endblock %}

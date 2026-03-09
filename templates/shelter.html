@@ -364,14 +364,14 @@
                 </div>
 
                 <button type="submit" class="profile-main-btn">Зберегти зміни</button>
-                <div class="danger-zone">
+            </form>
+            <div class="danger-zone">
                     <form method="post"
                           action="{{ url_for('delete_shelter_animal', animal_id=animal_to_edit.id) }}"
                           onsubmit="return confirm('Точно видалити тварину? Цю дію не можна скасувати.')">
                         <button type="submit" class="delete-animal-btn">Видалити тварину</button>
                     </form>
                 </div>
-            </form>
         </div>
 
     {% elif section == 'analytics' %}
@@ -380,22 +380,254 @@
                 <h1>Аналітика</h1>
             </div>
 
-            <div class="analytics-preview-grid">
-                <div class="analytics-box">
-                    <h3>Прогноз корму</h3>
-                    <p>Блок для прогнозу споживання корму на 7 днів.</p>
-                </div>
+            <div class="analytics-tabs">
+                <a href="{{ url_for('shelter_profile', section='analytics', module='forecast') }}"
+                   class="analytics-tab-btn {% if analytics_module == 'forecast' %}active{% endif %}">
+                    Прогноз корму
+                </a>
 
-                <div class="analytics-box">
-                    <h3>NLP модуль</h3>
-                    <p>Блок для аналізу нотаток та пошуку ключових слів.</p>
-                </div>
+                <a href="{{ url_for('shelter_profile', section='analytics', module='nlp') }}"
+                   class="analytics-tab-btn {% if analytics_module == 'nlp' %}active{% endif %}">
+                    NLP модуль
+                </a>
 
-                <div class="analytics-box">
-                    <h3>CV модуль</h3>
-                    <p>Блок для рекомендації типу тварини при додаванні.</p>
-                </div>
+                <a href="{{ url_for('shelter_profile', section='analytics', module='cv') }}"
+                   class="analytics-tab-btn {% if analytics_module == 'cv' %}active{% endif %}">
+                    CV модуль
+                </a>
             </div>
+
+            {% if analytics_module == 'forecast' %}
+                <div class="analytics-block">
+                    <div class="analytics-block-header">
+                        <h3>Прогноз корму</h3>
+
+                        <a href="{{ url_for('shelter_profile', section='analytics', module='forecast', forecast=1, days=forecast_days) }}"
+                           class="profile-main-btn">
+                            Порахувати прогноз
+                        </a>
+                    </div>
+
+                    <div class="forecast-range-tabs">
+                        <a href="{{ url_for('shelter_profile', section='analytics', module='forecast', forecast=1, days=7) }}"
+                           class="forecast-range-btn {% if forecast_days == 7 %}active{% endif %}">
+                            7 днів
+                        </a>
+
+                        <a href="{{ url_for('shelter_profile', section='analytics', module='forecast', forecast=1, days=14) }}"
+                           class="forecast-range-btn {% if forecast_days == 14 %}active{% endif %}">
+                            14 днів
+                        </a>
+
+                        <a href="{{ url_for('shelter_profile', section='analytics', module='forecast', forecast=1, days=30) }}"
+                           class="forecast-range-btn {% if forecast_days == 30 %}active{% endif %}">
+                            30 днів
+                        </a>
+                    </div>
+
+                    <p class="analytics-description">
+                        Побудуйте прогноз корму для зручності планування ресурсів.
+                    </p>
+
+                    <div class="analytics-form-block">
+                        <h4>Додати запис споживання корму</h4>
+
+                        <form method="post" action="{{ url_for('add_food_consumption') }}" class="analytics-form-grid">
+                            <div class="form-group">
+                                <label>Дата</label>
+                                <input type="date" name="date" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Кг корму</label>
+                                <input type="number" step="0.01" min="0" name="kg_used" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Кількість тварин</label>
+                                <input type="number" min="1" name="animals_count" required>
+                            </div>
+
+                            <div class="form-group analytics-form-btn-wrap">
+                                <button type="submit" class="profile-main-btn">Додати запис</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {% if food_to_edit %}
+                        <div class="analytics-form-block edit-mode">
+                            <h4>Редагувати запис</h4>
+
+                            <form method="post" action="{{ url_for('update_food_consumption', food_id=food_to_edit.id) }}" class="analytics-form-grid">
+                                <div class="form-group">
+                                    <label>Дата</label>
+                                    <input type="date" name="date" value="{{ food_to_edit.date.strftime('%Y-%m-%d') if food_to_edit.date else '' }}" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Кг корму</label>
+                                    <input type="number" step="0.01" min="0" name="kg_used" value="{{ food_to_edit.kg_used }}" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Кількість тварин</label>
+                                    <input type="number" min="1" name="animals_count" value="{{ food_to_edit.animals_count }}" required>
+                                </div>
+
+                                <div class="form-group analytics-form-btn-wrap analytics-form-actions">
+                                    <button type="submit" class="profile-main-btn">Зберегти зміни</button>
+                                    <a href="{{ url_for('shelter_profile', section='analytics', module='forecast') }}" class="profile-outline-btn">
+                                        Скасувати
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    {% if food_history %}
+                        <div class="analytics-mini-cards">
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Записів у базі</span>
+                                <span class="analytics-mini-value">{{ food_history|length }}</span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Активних тварин зараз</span>
+                                <span class="analytics-mini-value">{{ current_animals }}</span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Прогноз на 1 тварину / день</span>
+                                <span class="analytics-mini-value">
+                                    {% if forecast_per_animal is not none %}
+                                        {{ forecast_per_animal }} кг
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Прогноз на 1 день</span>
+                                <span class="analytics-mini-value">
+                                    {% if forecast_daily is not none %}
+                                        {{ forecast_daily }} кг
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Прогноз на {{ forecast_days }} днів</span>
+                                <span class="analytics-mini-value">
+                                    {% if forecast_total is not none %}
+                                        {{ forecast_total }} кг
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Коефіцієнт запасу</span>
+                                <span class="analytics-mini-value">+{{ reserve_percent }}%</span>
+                            </div>
+
+                            <div class="analytics-mini-card">
+                                <span class="analytics-mini-label">Рекомендований запас на {{ forecast_days }} днів</span>
+                                <span class="analytics-mini-value">
+                                    {% if recommended_total is not none %}
+                                        {{ recommended_total }} кг
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-table-wrap">
+                            <h4>Історія споживання корму</h4>
+
+                            <table class="analytics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Кг корму</th>
+                                        <th>Кількість тварин</th>
+                                        <th>Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in food_history %}
+                                        <tr>
+                                            <td>{{ row.date.strftime('%d.%m.%Y') if row.date else '' }}</td>
+                                            <td>{{ row.kg_used }} кг</td>
+                                            <td>{{ row.animals_count }}</td>
+                                            <td>
+                                                <div class="table-action-buttons">
+                                                    <a href="{{ url_for('shelter_profile', section='analytics', module='forecast', edit_food_id=row.id) }}" class="table-action-btn edit">
+                                                        Редагувати
+                                                    </a>
+
+                                                    <form method="post"
+                                                          action="{{ url_for('delete_food_consumption', food_id=row.id) }}"
+                                                          onsubmit="return confirm('Видалити цей запис?')">
+                                                        <button type="submit" class="table-action-btn delete">Видалити</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if forecast_rows %}
+                            <div class="analytics-table-wrap">
+                                <h4>Прогноз на наступні {{ forecast_days }} днів</h4>
+
+                                <table class="analytics-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Дата</th>
+                                            <th>Прогноз кг</th>
+                                            <th>Кількість тварин</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in forecast_rows %}
+                                            <tr>
+                                                <td>{{ row.date.strftime('%d.%m.%Y') }}</td>
+                                                <td>{{ row.kg_used }} кг</td>
+                                                <td>{{ row.animals_count }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="empty-text">Поки що немає записів у таблиці food_consumption.</p>
+                    {% endif %}
+                </div>
+
+            {% elif analytics_module == 'nlp' %}
+                <div class="analytics-block">
+                    <h3>NLP модуль</h3>
+                    <p class="analytics-description">
+                        Тут буде аналіз текстових нотаток, виділення ключових слів і прапорців для корму або тварин.
+                    </p>
+                </div>
+
+            {% elif analytics_module == 'cv' %}
+                <div class="analytics-block">
+                    <h3>CV модуль</h3>
+                    <p class="analytics-description">
+                        Тут буде рекомендація типу тварини на основі зображення під час створення анкети.
+                    </p>
+                </div>
+            {% endif %}
         </div>
 
     {% elif section == 'profile' %}

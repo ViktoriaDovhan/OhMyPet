@@ -123,61 +123,79 @@ html, body {
     font-weight: 800;
 }
 
-.search-box {
+.hero-actions {
     display: flex;
     align-items: center;
-    background: #ffffff;
-    padding: 10px;
-    border-radius: 50px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    width: 100%;
+    gap: 18px;
+    flex-wrap: wrap;
 }
 
-.input-group {
-    flex: 1;
-    display: flex;
+.hero-main-btn {
+    display: inline-flex;
     align-items: center;
-    padding: 0 15px;
-}
-
-.input-group .icon {
-    font-size: 20px;
-    margin-right: 10px;
-}
-
-.search-box input,
-.search-box select {
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 16px;
-    color: #555;
-    width: 100%;
-    cursor: default;
-}
-
-.divider {
-    width: 1px;
-    height: 30px;
-    background-color: #ddd;
-}
-
-.btn-main {
-    font-size: 16px;
-    font-weight: bold;
-    background: #ff85a2;
+    justify-content: center;
+    text-decoration: none;
+    padding: 18px 34px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f78fb3, #d7b8ff);
     color: white;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 40px;
-    cursor: pointer;
-    transition: background 0.3s;
-    white-space: nowrap;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 10px 24px rgba(228, 163, 205, 0.35);
+    transition: all 0.25s ease;
 }
 
-.btn-main:hover {
-    background: #ff6b8e;
-    box-shadow: 0 4px 15px rgba(255, 107, 142, 0.4);
+.hero-main-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(228, 163, 205, 0.42);
+}
+
+.main-pet-card {
+    display: flex;
+    flex-direction: column;
+    border: 7px solid #e5d9ff;
+    padding: 18px;
+    border-radius: 28px;
+}
+
+.main-pet-card img {
+    width: 100%;
+    height: 420px;
+    object-fit: cover;
+    border-radius: 20px;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.main-pet-card h3 {
+    font-size: 22px;
+    margin: 0 0 10px 0;
+}
+
+.main-pet-card p {
+    font-size: 15px;
+    margin: 4px 0;
+    color: #555;
+}
+
+.home-details-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    align-self: flex-start;
+    padding: 12px 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    background: #f3cfe1;
+    color: #333;
+    font-weight: 700;
+    transition: 0.2s;
+}
+
+.home-details-btn:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
 }
 
 .pets {
@@ -222,47 +240,6 @@ html, body {
     display: block;
 }
 
-.pets .pet-card button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.pets .pet-card.purple {
-    border: 7px solid #e5d9ff;
-}
-
-.pets .pet-card.purple button {
-    background: #e5d9ff;
-}
-
-.pets .pet-card.peach {
-    border: 7px solid #ffe1c6;
-}
-
-.pets .pet-card.peach button {
-    background: #ffe1c6;
-}
-
-.pets .pet-card.green {
-    border: 7px solid #c9f2e3;
-}
-
-.pets .pet-card.green button {
-    background: #c9f2e3;
-}
-
-.pets .pet-card.blue {
-    border: 7px solid #c4def2;
-}
-
-.pets .pet-card.blue button {
-    background: #c4def2;
-}
-
 .more-pets {
     margin-top: 50px;
     padding: 40px;
@@ -301,10 +278,18 @@ html, body {
 }
 
 .info-card {
-    background: #fff4cc;
-    padding: 30px;
-    border-radius: 20px;
+    padding: 34px 30px;
+    border-radius: 28px;
     text-align: center;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+}
+
+.info-cards .info-card:first-child {
+    background: #fff7fb;
+}
+
+.info-cards .info-card:last-child {
+    background: #f4fcfc;
 }
 
 .info-card h4 {
@@ -345,6 +330,10 @@ html, body {
     .pets .pet-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .main-pet-card img {
+        height: 340px;
+    }
 }
 
 @media (max-width: 900px) {
@@ -364,31 +353,14 @@ html, body {
     .hero-text h1 {
         font-size: 42px;
     }
-}
 
-@media (max-width: 700px) {
-    .header-container {
-        padding: 0 20px;
+    .hero-actions {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .nav {
-        gap: 6px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .nav a {
-        padding: 8px 14px;
-        font-size: 14px;
-    }
-
-    .account-btn {
-        height: 44px;
-        width: 44px;
-    }
-
-    .info-cards {
-        grid-template-columns: 1fr;
+    .main-pet-card img {
+        height: 300px;
     }
 }
 
@@ -404,5 +376,9 @@ html, body {
 
     .hero-text h1 {
         font-size: 34px;
+    }
+
+    .main-pet-card img {
+        height: 260px;
     }
 }
