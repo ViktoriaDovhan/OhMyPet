@@ -91,12 +91,44 @@
                 <div class="animals-grid">
                     {% for animal in animals_list %}
                         <div class="animal-mini-card">
+                            <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}" class="animal-mini-image">
                             <h3>{{ animal.name }}</h3>
-                            <p><strong>Тип:</strong> {{ animal.animal_type }}</p>
-                            <p><strong>Порода:</strong> {{ animal.breed or '—' }}</p>
-                            <p><strong>Стать:</strong> {{ animal.sex or '—' }}</p>
-                            <p><strong>Вік:</strong> {{ animal.age_months or '—' }} міс.</p>
-                            <p><strong>Статус:</strong> {% if animal.is_active %}Активна{% else %}Неактивна{% endif %}</p>
+                            <p><strong>Тип:</strong> {{ animal.animal_type or '' }}</p>
+                            <p><strong>Порода:</strong> {{ animal.breed or '-' }}</p>
+                            <p><strong>Стать:</strong> {{ animal.sex or '-' }}</p>
+                            <p><strong>Вік:</strong> {{ animal.age_months or '-' }} міс.</p>
+
+                            <div class="animal-status-row">
+                                {% if animal.is_active %}
+                                    <span class="status-badge active">Активна</span>
+                                {% else %}
+                                    <span class="status-badge inactive">Неактивна</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="animal-actions-block">
+                                <div class="animal-actions-row">
+                                    <a href="{{ url_for('edit_shelter_animal', animal_id=animal.id) }}" class="profile-outline-btn ">
+                                        Редагувати ✏️
+                                    </a>
+
+                                    <form method="post" action="{{ url_for('toggle_animal_active', animal_id=animal.id) }}" class="animal-action-form">
+                                        <button type="submit" class="profile-outline-btn ">
+                                            {% if animal.is_active %}Деактивувати 🙈{% else %}Активувати 🙉{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div class="animal-actions-row">
+                                    <a href="{{ url_for('shelter_profile', section='requests', animal_id=animal.id) }}" class="profile-outline-btn ">
+                                        Заявки 📄
+                                    </a>
+
+                                    <a href="{{ url_for('animal_details', animal_id=animal.id) }}" class="profile-outline-btn ">
+                                        Переглянути анкету 👀
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
@@ -111,9 +143,235 @@
                 <h1>Додати тварину</h1>
             </div>
 
-            <div class="settings-box">
-                <p>Тут буде форма додавання тварини. Після цього можна окремо підключити завантаження фото і “recommended type”.</p>
+            <form method="post" action="{{ url_for('add_shelter_animal') }}" enctype="multipart/form-data" class="profile-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Ім’я</label>
+                        <input type="text" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Тип тварини</label>
+                        <input type="text" name="animal_type" placeholder="Кіт або Пес" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Порода</label>
+                        <input type="text" name="breed">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Стать</label>
+                        <input type="text" name="sex" placeholder="Хлопчик або Дівчинка">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Вік (у місяцях)</label>
+                        <input type="number" name="age_months" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Розмір</label>
+                        <input type="text" name="size" placeholder="Малий / Середній / Великий">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Характер</label>
+
+                        <select name="character_select" id="character_select_add" onchange="toggleCharacterInput('add')">
+                            <option value="">Оберіть характер</option>
+                            <option value="Лагідний">Лагідний</option>
+                            <option value="Грайливий">Грайливий</option>
+                            <option value="Спокійний">Спокійний</option>
+                            <option value="Дружній">Дружній</option>
+                            <option value="Активний">Активний</option>
+                            <option value="Сором’язливий">Сором’язливий</option>
+                            <option value="__other__">Інше</option>
+                        </select>
+
+                        <input type="text" name="character_custom" id="character_custom_add" placeholder="Введіть свій варіант" style="display: none; margin-top: 10px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Забарвлення</label>
+                        <input type="text" name="color">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Стан здоров’я</label>
+                        <input type="text" name="health_status">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Фото</label>
+                        <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Опис</label>
+                    <textarea name="description" rows="5"></textarea>
+                </div>
+
+                <div class="checkbox-grid">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="sterilized">
+                        <span>Стерилізована</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="vaccinated">
+                        <span>Вакцинована</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="urgent">
+                        <span>Термінова адопція</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="is_active" checked>
+                        <span>Активна на сайті</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="profile-main-btn">Зберегти тварину</button>
+            </form>
+        </div>
+
+    {% elif section == 'edit_animal' %}
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h1>Редагувати тварину</h1>
             </div>
+
+            {% if animal_photos %}
+                <div class="edit-photos-block">
+                    <h3>Поточні фото</h3>
+
+                    <div class="edit-photos-grid">
+                        {% for photo in animal_photos %}
+                            <div class="edit-photo-card">
+                                <img src="{{ url_for('static', filename=photo.photo_url) }}" alt="Фото тварини" class="edit-photo-image">
+
+                                {% if photo.is_main %}
+                                    <span class="main-photo-badge">Головне фото</span>
+                                {% endif %}
+
+                                <form method="post"
+                                      action="{{ url_for('delete_animal_photo', animal_id=animal_to_edit.id, photo_id=photo.id) }}"
+                                      onsubmit="return confirm('Видалити це фото?')">
+                                    <button type="submit" class="delete-photo-btn">Видалити фото</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('edit_shelter_animal', animal_id=animal_to_edit.id) }}" enctype="multipart/form-data" class="profile-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Ім’я</label>
+                        <input type="text" name="name" value="{{ animal_to_edit.name or '' }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Тип тварини</label>
+                        <input type="text" name="animal_type" value="{{ animal_to_edit.animal_type or '' }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Порода</label>
+                        <input type="text" name="breed" value="{{ animal_to_edit.breed or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Стать</label>
+                        <input type="text" name="sex" value="{{ animal_to_edit.sex or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Вік (у місяцях)</label>
+                        <input type="number" name="age_months" min="0" value="{{ animal_to_edit.age_months if animal_to_edit.age_months is not none else '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Розмір</label>
+                        <input type="text" name="size" value="{{ animal_to_edit.size or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Характер</label>
+
+                        <select name="character_select" id="character_select_edit" onchange="toggleCharacterInput('edit')">
+                            <option value="">Оберіть характер</option>
+                            <option value="Лагідний" {% if animal_to_edit.character == 'Лагідний' %}selected{% endif %}>Лагідний</option>
+                            <option value="Грайливий" {% if animal_to_edit.character == 'Грайливий' %}selected{% endif %}>Грайливий</option>
+                            <option value="Спокійний" {% if animal_to_edit.character == 'Спокійний' %}selected{% endif %}>Спокійний</option>
+                            <option value="Дружній" {% if animal_to_edit.character == 'Дружній' %}selected{% endif %}>Дружній</option>
+                            <option value="Активний" {% if animal_to_edit.character == 'Активний' %}selected{% endif %}>Активний</option>
+                            <option value="Сором’язливий" {% if animal_to_edit.character == 'Сором’язливий' %}selected{% endif %}>Сором’язливий</option>
+                            <option value="__other__"
+                                {% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}
+                                    selected
+                                {% endif %}
+                            >Інше</option>
+                        </select>
+
+                        <input type="text" name="character_custom" id="character_custom_edit" placeholder="Введіть свій варіант" value="{% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}{{ animal_to_edit.character }}{% endif %}" style="{% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}display: block; margin-top: 10px;{% else %}display: none; margin-top: 10px;{% endif %}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Забарвлення</label>
+                        <input type="text" name="color" value="{{ animal_to_edit.color or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Стан здоров’я</label>
+                        <input type="text" name="health_status" value="{{ animal_to_edit.health_status or '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Нове фото</label>
+                        <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Опис</label>
+                    <textarea name="description" rows="5">{{ animal_to_edit.description or '' }}</textarea>
+                </div>
+
+                <div class="checkbox-grid">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="sterilized" {% if animal_to_edit.sterilized %}checked{% endif %}>
+                        <span>Стерилізована</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="vaccinated" {% if animal_to_edit.vaccinated %}checked{% endif %}>
+                        <span>Вакцинована</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="urgent" {% if animal_to_edit.urgent %}checked{% endif %}>
+                        <span>Термінова адопція</span>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="is_active" {% if animal_to_edit.is_active %}checked{% endif %}>
+                        <span>Активна на сайті</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="profile-main-btn">Зберегти зміни</button>
+                <div class="danger-zone">
+                    <form method="post"
+                          action="{{ url_for('delete_shelter_animal', animal_id=animal_to_edit.id) }}"
+                          onsubmit="return confirm('Точно видалити тварину? Цю дію не можна скасувати.')">
+                        <button type="submit" class="delete-animal-btn">Видалити тварину</button>
+                    </form>
+                </div>
+            </form>
         </div>
 
     {% elif section == 'analytics' %}
@@ -173,4 +431,19 @@
             {% endif %}
         </div>
     {% endif %}
+<script>
+function toggleCharacterInput(mode) {
+    const select = document.getElementById(`character_select_${mode}`);
+    const input = document.getElementById(`character_custom_${mode}`);
+
+    if (!select || !input) return;
+
+    if (select.value === "__other__") {
+        input.style.display = "block";
+    } else {
+        input.style.display = "none";
+        input.value = "";
+    }
+}
+</script>
 {% endblock %}

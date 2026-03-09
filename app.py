@@ -3,11 +3,33 @@ from psycopg2.extras import RealDictCursor
 from auth import auth
 from database.db import get_connection
 from functools import wraps
+import os, uuid
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "secret-key"
 
 app.register_blueprint(auth)
+
+ANIMAL_UPLOAD_FOLDER = os.path.join(app.static_folder, "images", "animals")
+os.makedirs(ANIMAL_UPLOAD_FOLDER, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def delete_static_file(photo_url):
+    if not photo_url:
+        return
+
+    relative_path = photo_url.replace("/", os.sep)
+    file_path = os.path.join(app.static_folder, relative_path)
+
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        os.remove(file_path)
+
 
 def login_required(view):
     @wraps(view)
@@ -27,6 +49,11 @@ def admin_required(view):
             abort(403)
         return view(*args, **kwargs)
     return wrapped
+
+
+@app.route("/auth")
+def auth_page():
+    return redirect(url_for("auth.login"))
 
 
 @app.route('/')
@@ -118,6 +145,19 @@ def adopt():
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(query, params)
     animals = cur.fetchall()
+
+    cur.execute("""
+        SELECT DISTINCT character
+        FROM animals
+        WHERE character IS NOT NULL
+          AND TRIM(character) <> ''
+          AND COALESCE(is_adopted, FALSE) = FALSE
+          AND COALESCE(is_active, TRUE) = TRUE
+        ORDER BY character
+    """)
+    character_rows = cur.fetchall()
+    available_characters = [row["character"] for row in character_rows]
+
     cur.close()
     conn.close()
 
@@ -131,7 +171,7 @@ def adopt():
         "urgent": urgent
     }
 
-    return render_template("adopt.html", animals=animals, filters=filters)
+    return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters)
 
 
 @app.route("/animal/<int:animal_id>")
@@ -358,11 +398,37 @@ def shelter_profile():
     requests_list = cur.fetchall()
 
     cur.execute("""
-            SELECT id, name, animal_type, breed, sex, age_months, is_active
-            FROM animals
-            WHERE shelter_id = %s
-            ORDER BY id DESC
-        """, (session["shelter_id"],))
+        SELECT
+            a.id,
+            a.name,
+            a.animal_type,
+            a.breed,
+            a.sex,
+            a.age_months,
+            a.size,
+            a.character,
+            a.color,
+            a.sterilized,
+            a.urgent,
+            a.vaccinated,
+            a.health_status,
+            a.description,
+            COALESCE(a.is_active, TRUE) AS is_active,
+            COALESCE(
+                (
+                    SELECT ap.photo_url
+                    FROM animal_photos ap
+                    WHERE ap.animal_id = a.id
+                    ORDER BY ap.is_main DESC, ap.id ASC
+                    LIMIT 1
+                ),
+                'images/no-image.png'
+            ) AS photo_url
+        FROM animals a
+        WHERE a.shelter_id = %s
+        ORDER BY a.id DESC
+    """, (session["shelter_id"],))
+
     animals_list = cur.fetchall()
 
     cur.execute("""
@@ -370,6 +436,7 @@ def shelter_profile():
             FROM shelters
             WHERE id = %s
         """, (session["shelter_id"],))
+
     shelter = cur.fetchone()
 
     cur.close()
@@ -389,9 +456,431 @@ def superadmin_profile():
     return render_template("superadmin.html", section=section)
 
 
-@app.route("/auth")
-def auth_page():
-    return redirect(url_for("auth.login"))
+@app.route("/profile/shelter/animal/add", methods=["POST"])
+@admin_required
+def add_shelter_animal():
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    name = request.form.get("name", "").strip()
+    animal_type = request.form.get("animal_type", "").strip()
+    breed = request.form.get("breed", "").strip()
+    sex = request.form.get("sex", "").strip()
+    age_months = request.form.get("age_months", "").strip()
+    size = request.form.get("size", "").strip()
+    color = request.form.get("color", "").strip()
+    health_status = request.form.get("health_status", "").strip()
+    description = request.form.get("description", "").strip()
+    sterilized = request.form.get("sterilized") == "on"
+    urgent = request.form.get("urgent") == "on"
+    vaccinated = request.form.get("vaccinated") == "on"
+    is_active = request.form.get("is_active") == "on"
+    character_select = request.form.get("character_select", "").strip()
+    character_custom = request.form.get("character_custom", "").strip()
+
+    if character_select == "__other__":
+        character = character_custom
+    else:
+        character = character_select
+
+    if not name or not animal_type:
+        return redirect(url_for("shelter_profile", section="add_animal"))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO animals (
+            shelter_id,
+            name,
+            animal_type,
+            breed,
+            sex,
+            age_months,
+            size,
+            character,
+            color,
+            sterilized,
+            urgent,
+            vaccinated,
+            health_status,
+            description,
+            is_active
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id 
+    """, (
+        shelter_id,
+        name,
+        animal_type,
+        breed,
+        sex,
+        age_months,
+        size,
+        character,
+        color,
+        sterilized,
+        urgent,
+        vaccinated,
+        health_status,
+        description,
+        is_active
+    ))
+
+    animal_id = cur.fetchone()[0]
+
+    photos = request.files.getlist("photos")
+
+    is_first_photo = True
+
+    for photo in photos:
+        if photo and photo.filename and allowed_file(photo.filename):
+            ext = os.path.splitext(secure_filename(photo.filename))[1].lower()
+            filename = f"{uuid.uuid4().hex}{ext}"
+            save_path = os.path.join(ANIMAL_UPLOAD_FOLDER, filename)
+            photo.save(save_path)
+
+            photo_url = f"images/animals/{filename}"
+
+            cur.execute("""
+                INSERT INTO animal_photos (animal_id, photo_url, is_main)
+                VALUES (%s, %s, %s)
+            """, (animal_id, photo_url, is_first_photo))
+
+            is_first_photo = False
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="animals"))
+
+
+@app.route("/profile/shelter/animal/<int:animal_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_shelter_animal(animal_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT *
+        FROM animals
+        WHERE id = %s AND shelter_id = %s
+    """, (animal_id, shelter_id))
+    animal = cur.fetchone()
+
+    if not animal:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        animal_type = request.form.get("animal_type", "").strip()
+        breed = request.form.get("breed", "").strip()
+        sex = request.form.get("sex", "").strip()
+        age_months = request.form.get("age_months", type=int)
+        size = request.form.get("size", "").strip()
+        color = request.form.get("color", "").strip()
+        health_status = request.form.get("health_status", "").strip()
+        description = request.form.get("description", "").strip()
+        sterilized = request.form.get("sterilized") == "on"
+        urgent = request.form.get("urgent") == "on"
+        vaccinated = request.form.get("vaccinated") == "on"
+        is_active = request.form.get("is_active") == "on"
+        character_select = request.form.get("character_select", "").strip()
+        character_custom = request.form.get("character_custom", "").strip()
+
+        if character_select == "__other__":
+            character = character_custom.strip()
+        else:
+            character = character_select.strip()
+
+        if not name or not animal_type:
+            cur.close()
+            conn.close()
+            return redirect(url_for("edit_shelter_animal", animal_id=animal_id))
+
+        cur2 = conn.cursor()
+
+        cur2.execute("""
+            UPDATE animals
+            SET name = %s,
+                animal_type = %s,
+                breed = %s,
+                sex = %s,
+                age_months = %s,
+                size = %s,
+                character = %s,
+                color = %s,
+                sterilized = %s,
+                urgent = %s,
+                vaccinated = %s,
+                health_status = %s,
+                description = %s,
+                is_active = %s
+            WHERE id = %s AND shelter_id = %s
+        """, (
+            name,
+            animal_type,
+            breed or None,
+            sex or None,
+            age_months,
+            size or None,
+            character or None,
+            color or None,
+            sterilized,
+            urgent,
+            vaccinated,
+            health_status or None,
+            description or None,
+            is_active,
+            animal_id,
+            shelter_id
+        ))
+
+        photos = request.files.getlist("photos")
+
+        cur2.execute("""
+            SELECT COUNT(*)
+            FROM animal_photos
+            WHERE animal_id = %s
+        """, (animal_id,))
+        existing_photos_count = cur2.fetchone()[0]
+
+        for index, photo in enumerate(photos):
+            if photo and photo.filename and allowed_file(photo.filename):
+                ext = os.path.splitext(secure_filename(photo.filename))[1].lower()
+                filename = f"{uuid.uuid4().hex}{ext}"
+                save_path = os.path.join(ANIMAL_UPLOAD_FOLDER, filename)
+                photo.save(save_path)
+
+                photo_url = f"images/animals/{filename}"
+
+                is_main = existing_photos_count == 0 and index == 0
+
+                cur2.execute("""
+                    INSERT INTO animal_photos (animal_id, photo_url, is_main)
+                    VALUES (%s, %s, %s)
+                """, (animal_id, photo_url, is_main))
+
+
+        conn.commit()
+        cur2.close()
+        cur.close()
+        conn.close()
+
+        return redirect(url_for("shelter_profile", section="animals"))
+
+    cur.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.animal_type,
+            a.breed,
+            a.sex,
+            a.age_months,
+            a.size,
+            a.character,
+            a.color,
+            a.sterilized,
+            a.urgent,
+            a.vaccinated,
+            a.health_status,
+            a.description,
+            COALESCE(a.is_active, TRUE) AS is_active,
+            COALESCE(
+                (
+                    SELECT ap.photo_url
+                    FROM animal_photos ap
+                    WHERE ap.animal_id = a.id
+                    ORDER BY ap.is_main DESC, ap.id ASC
+                    LIMIT 1
+                ),
+                'images/no-image.png'
+            ) AS photo_url
+        FROM animals a
+        WHERE a.shelter_id = %s
+        ORDER BY a.id DESC
+    """, (shelter_id,))
+    animals_list = cur.fetchall()
+
+    cur.execute("""
+        SELECT
+            r.id,
+            r.message,
+            r.status,
+            r.created_at,
+            u.email AS user_email,
+            a.id AS animal_id,
+            a.name AS animal_name
+        FROM adoption_requests r
+        JOIN users u ON u.id = r.user_id
+        JOIN animals a ON a.id = r.animal_id
+        WHERE a.shelter_id = %s
+        ORDER BY r.created_at DESC
+    """, (shelter_id,))
+    requests_list = cur.fetchall()
+
+    cur.execute("""
+        SELECT id, name, city, phone, email
+        FROM shelters
+        WHERE id = %s
+    """, (shelter_id,))
+    shelter = cur.fetchone()
+
+    cur.execute("""
+        SELECT id, photo_url, is_main
+        FROM animal_photos
+        WHERE animal_id = %s
+        ORDER BY is_main DESC, id ASC
+    """, (animal_id,))
+    animal_photos = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("shelter.html", section="edit_animal", animal_to_edit=animal, animal_photos=animal_photos, animals_list=animals_list, requests_list=requests_list, shelter=shelter, selected_animal_id=None)
+
+
+@app.route("/profile/shelter/animal/<int:animal_id>/photo/<int:photo_id>/delete", methods=["POST"])
+@admin_required
+def delete_animal_photo(animal_id, photo_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT ap.id, ap.photo_url, ap.is_main
+        FROM animal_photos ap
+        JOIN animals a ON a.id = ap.animal_id
+        WHERE ap.id = %s
+          AND ap.animal_id = %s
+          AND a.shelter_id = %s
+    """, (photo_id, animal_id, shelter_id))
+    photo = cur.fetchone()
+
+    if not photo:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    cur2 = conn.cursor()
+
+    cur2.execute("""
+        DELETE FROM animal_photos
+        WHERE id = %s
+    """, (photo_id,))
+
+    delete_static_file(photo["photo_url"])
+
+    if photo["is_main"]:
+        cur2.execute("""
+            SELECT id
+            FROM animal_photos
+            WHERE animal_id = %s
+            ORDER BY id ASC
+            LIMIT 1
+        """, (animal_id,))
+        next_photo = cur2.fetchone()
+
+        if next_photo:
+            cur2.execute("""
+                UPDATE animal_photos
+                SET is_main = TRUE
+                WHERE id = %s
+            """, (next_photo[0],))
+
+    conn.commit()
+    cur2.close()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("edit_shelter_animal", animal_id=animal_id))
+
+
+@app.route("/profile/shelter/animal/<int:animal_id>/delete", methods=["POST"])
+@admin_required
+def delete_shelter_animal(animal_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT id
+        FROM animals
+        WHERE id = %s AND shelter_id = %s
+    """, (animal_id, shelter_id))
+    animal = cur.fetchone()
+
+    if not animal:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    cur.execute("""
+        SELECT photo_url
+        FROM animal_photos
+        WHERE animal_id = %s
+    """, (animal_id,))
+    photos = cur.fetchall()
+
+    cur2 = conn.cursor()
+
+    cur2.execute("""
+        DELETE FROM animal_photos
+        WHERE animal_id = %s
+    """, (animal_id,))
+
+    cur2.execute("""
+        DELETE FROM animals
+        WHERE id = %s AND shelter_id = %s
+    """, (animal_id, shelter_id))
+
+    conn.commit()
+
+    for photo in photos:
+        delete_static_file(photo["photo_url"])
+
+    cur2.close()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="animals"))
+
+
+@app.route("/profile/shelter/animal/<int:animal_id>/toggle", methods=["POST"])
+@admin_required
+def toggle_animal_active(animal_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE animals
+        SET is_active = NOT COALESCE(is_active, TRUE)
+        WHERE id = %s AND shelter_id = %s
+    """, (animal_id, shelter_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="animals"))
 
 
 if __name__ == "__main__":

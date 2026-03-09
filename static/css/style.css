@@ -1,10 +1,10 @@
-html, body{
+html, body {
     width: 100%;
     overflow-x: hidden;
     padding: 0;
     margin: 0;
     font-family: Arial, sans-serif;
-    background:  #f8f9fb;
+    background: #f8f9fb;
 }
 
 * {
@@ -14,11 +14,12 @@ html, body{
 .header {
     width: 100%;
     padding: 10px 0;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
     height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #fff;
 }
 
 .header-container {
@@ -49,7 +50,7 @@ html, body{
     padding: 10px 22px;
     border-radius: 30px;
     transition: all 0.3s ease;
-    border: 1px solid transparent
+    border: 1px solid transparent;
 }
 
 .nav a:hover {
@@ -70,10 +71,10 @@ html, body{
     align-items: center;
     height: 50px;
     width: 50px;
-    background-color: #f1f3f6;
     border-radius: 50%;
     color: #666;
-    transition: all 0.3 ease;
+    transition: all 0.3s ease;
+    text-decoration: none;
 }
 
 .account-btn:hover {
@@ -99,10 +100,9 @@ html, body{
     height: auto;
     z-index: 1;
     pointer-events: none;
-
 }
 
-.hero-image-layer img{
+.hero-image-layer img {
     width: 408px;
     height: 600px;
     display: block;
@@ -120,7 +120,7 @@ html, body{
     line-height: 1.2;
     color: #2c2c2c;
     margin-bottom: 40px;
-    font-weight: 800
+    font-weight: 800;
 }
 
 .search-box {
@@ -141,11 +141,12 @@ html, body{
 }
 
 .input-group .icon {
-    font-size: 20px
+    font-size: 20px;
     margin-right: 10px;
 }
 
-.search-box input, .search-box select {
+.search-box input,
+.search-box select {
     border: none;
     outline: none;
     background: transparent;
@@ -157,7 +158,7 @@ html, body{
 
 .divider {
     width: 1px;
-    height:30px;
+    height: 30px;
     background-color: #ddd;
 }
 
@@ -176,7 +177,7 @@ html, body{
 
 .btn-main:hover {
     background: #ff6b8e;
-    box-shadow: 0 4px 15px rgba(256, 107, 142, 0.4);
+    box-shadow: 0 4px 15px rgba(255, 107, 142, 0.4);
 }
 
 .pets {
@@ -188,39 +189,40 @@ html, body{
     font-weight: bold;
 }
 
-.pet-grid {
+.pets .pet-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 30px;
 }
 
-.pet-card {
+.pets .pet-card {
     background: white;
     border-radius: 20px;
     padding: 15px;
     text-align: left;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
     position: relative;
 }
 
-.pet-card h3 {
+.pets .pet-card h3 {
     font-size: 18px;
     margin-bottom: 5px;
 }
 
-.pet-card p {
+.pets .pet-card p {
     font-size: 14px;
     color: #666;
     margin: 2px 0;
 }
 
-.pet-card img {
+.pets .pet-card img {
     width: 100%;
     border-radius: 15px;
     margin-bottom: 10px;
+    display: block;
 }
 
-.pet-card button {
+.pets .pet-card button {
     margin-top: 10px;
     padding: 8px 16px;
     border-radius: 20px;
@@ -229,35 +231,35 @@ html, body{
     cursor: pointer;
 }
 
-.pet-card.purple {
+.pets .pet-card.purple {
     border: 7px solid #e5d9ff;
 }
 
-.pet-card.purple button {
+.pets .pet-card.purple button {
     background: #e5d9ff;
 }
 
-.pet-card.peach {
+.pets .pet-card.peach {
     border: 7px solid #ffe1c6;
 }
 
-.pet-card.peach button {
+.pets .pet-card.peach button {
     background: #ffe1c6;
 }
 
-.pet-card.green {
+.pets .pet-card.green {
     border: 7px solid #c9f2e3;
 }
 
-.pet-card.green button {
+.pets .pet-card.green button {
     background: #c9f2e3;
 }
 
-.pet-card.blue {
+.pets .pet-card.blue {
     border: 7px solid #c4def2;
 }
 
-.pet-card.blue button {
+.pets .pet-card.blue button {
     background: #c4def2;
 }
 
@@ -266,7 +268,7 @@ html, body{
     padding: 40px;
     border-radius: 25px;
     text-align: center;
-    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%)
+    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%);
 }
 
 .more-pets h3 {
@@ -288,7 +290,7 @@ html, body{
 
 .more-pets-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .info-cards {
@@ -328,31 +330,79 @@ html, body{
 
 .info-card-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .footer {
     text-align: center;
     padding: 20px;
-    background: #EEF1F7;
+    background: #eef1f7;
     margin-top: 40px;
     width: 100%;
 }
 
 @media (max-width: 1200px) {
-    .pet-grid {
+    .pets .pet-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
 @media (max-width: 900px) {
-    .pet-grid {
+    .pets .pet-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hero {
+        height: auto;
+        padding: 60px 5%;
+    }
+
+    .hero-image-layer {
+        display: none;
+    }
+
+    .hero-text h1 {
+        font-size: 42px;
+    }
+}
+
+@media (max-width: 700px) {
+    .header-container {
+        padding: 0 20px;
+    }
+
+    .nav {
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .nav a {
+        padding: 8px 14px;
+        font-size: 14px;
+    }
+
+    .account-btn {
+        height: 44px;
+        width: 44px;
+    }
+
+    .info-cards {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 500px) {
-    .pet-grid {
+    .pets .pet-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pets,
+    .more-pets {
+        padding: 20px;
+    }
+
+    .hero-text h1 {
+        font-size: 34px;
     }
 }

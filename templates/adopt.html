@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/adopt.css') }}">
-
+{% endblock %}
 <section class="adopt-page">
 
     <aside class="filters">
@@ -109,20 +110,13 @@
             <div class="filter-group">
                 <p>Характер</p>
                 <div class="pill-group">
-                    <label class="pill-checkbox">
-                        <input type="checkbox" name="character" value="Спокійний" {{ calm_checked }}>
-                        <span>Спокійний</span>
-                    </label>
-
-                    <label class="pill-checkbox">
-                        <input type="checkbox" name="character" value="Активний" {{ active_checked }}>
-                        <span>Активний</span>
-                    </label>
-
-                    <label class="pill-checkbox">
-                        <input type="checkbox" name="character" value="Лагідний" {{ kind_checked }}>
-                        <span>Лагідний</span>
-                    </label>
+                    {% for value in available_characters %}
+                        <label class="pill-checkbox">
+                            <input type="checkbox" name="character" value="{{ value }}"
+                                   {% if value in filters.characters %}checked{% endif %}>
+                            <span>{{ value }}</span>
+                        </label>
+                    {% endfor %}
                 </div>
             </div>
 
