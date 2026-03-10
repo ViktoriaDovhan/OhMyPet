@@ -537,6 +537,246 @@ def admin_required(view):
     return wrapped
 
 
+def build_age_group(age_months):
+    if age_months is None:
+        return "unknown"
+    if age_months <= 12:
+        return "baby"
+    if age_months <= 36:
+        return "young"
+    return "adult"
+
+
+def contains_any(text, keywords):
+    text = (text or "").lower()
+
+    for keyword in keywords:
+        pattern = r'(^|[^а-яіїєґa-z])' + re.escape(keyword.lower()) + r'([^а-яіїєґa-z]|$)'
+        if re.search(pattern, text):
+            return True
+
+    return False
+
+def unique_values(values):
+    result = []
+    for value in values:
+        if value and value not in result:
+            result.append(value)
+    return result
+
+
+def derive_filters_from_preferences(preferences):
+    derived_types = []
+    derived_sizes = []
+    derived_ages = []
+
+    preferred_type = preferences.get("preferred_type")
+    home_type = preferences.get("home_type")
+    housing_size = preferences.get("housing_size")
+    daily_time = preferences.get("daily_time")
+    experience = preferences.get("experience")
+    preferred_age = preferences.get("preferred_age")
+
+    if preferred_type in ["Кіт", "Пес"]:
+        derived_types.append(preferred_type)
+
+    if preferred_age in ["baby", "young", "adult"]:
+        derived_ages.append(preferred_age)
+
+    if home_type == "apartment":
+        if housing_size == "small":
+            derived_sizes.extend(["Маленький"])
+        elif housing_size == "medium":
+            derived_sizes.extend(["Маленький", "Середній"])
+        else:
+            derived_sizes.extend(["Середній", "Маленький"])
+
+    if home_type == "house":
+        if housing_size == "small":
+            derived_sizes.extend(["Середній"])
+        elif housing_size == "medium":
+            derived_sizes.extend(["Середній", "Великий"])
+        else:
+            derived_sizes.extend(["Великий", "Середній"])
+
+    if daily_time == "low" and preferred_age not in ["baby", "young", "adult"]:
+        derived_ages.append("adult")
+
+    if experience == "none" and preferred_age not in ["baby", "young", "adult"]:
+        derived_ages.append("adult")
+
+    return {
+        "types": unique_values(derived_types),
+        "sizes": unique_values(derived_sizes),
+        "ages": unique_values(derived_ages)
+    }
+
+
+def calculate_match(animal, preferences):
+    score = 0
+    reasons = []
+
+    def add(points, reason=None):
+        nonlocal score
+        score += points
+        if reason and reason not in reasons:
+            reasons.append(reason)
+
+    animal_type = (animal.get("animal_type") or "").strip()
+    size = (animal.get("size") or "").strip()
+    character = (animal.get("character") or "").strip()
+    age_group = build_age_group(animal.get("age_months"))
+    description = (animal.get("description") or "").lower()
+
+    preferred_type = preferences.get("preferred_type")
+    home_type = preferences.get("home_type")
+    housing_size = preferences.get("housing_size")
+    daily_time = preferences.get("daily_time")
+    activity_preference = preferences.get("activity_preference")
+    experience = preferences.get("experience")
+    has_children = preferences.get("has_children")
+    has_other_animals = preferences.get("has_other_animals")
+    preferred_age = preferences.get("preferred_age")
+
+    if preferred_type in ["Кіт", "Пес"] and animal_type == preferred_type:
+        add(16, f"Підходить за видом: {animal_type.lower()}")
+
+    if home_type == "apartment":
+        if size == "Маленький":
+            add(18, "Зручний для квартири")
+        elif size == "Середній":
+            add(12, "Може підійти для квартири")
+        elif size == "Великий":
+            add(3)
+
+        if housing_size == "small" and size == "Маленький":
+            add(8, "Комфортний для невеликого житла")
+        elif housing_size == "medium" and size in ["Маленький", "Середній"]:
+            add(6)
+        elif housing_size == "large" and size in ["Середній", "Великий"]:
+            add(6)
+
+    if home_type == "house":
+        if size == "Великий":
+            add(18, "Добре підійде для будинку")
+        elif size == "Середній":
+            add(14, "Комфортний для будинку")
+        elif size == "Маленький":
+            add(10)
+
+    if daily_time == "low":
+        if character in ["Спокійний", "Лагідний"]:
+            add(16, "Підійде, якщо вдома небагато часу")
+        elif age_group == "adult":
+            add(10, "Доросла тварина часто простіша в побуті")
+        else:
+            add(4)
+
+    if daily_time == "medium":
+        if character in ["Спокійний", "Лагідний", "Активний"]:
+            add(10)
+        if age_group in ["young", "adult"]:
+            add(6)
+
+    if daily_time == "high":
+        if character == "Активний":
+            add(16, "Підійде для активного щоденного контакту")
+        elif age_group in ["baby", "young"]:
+            add(10, "Потребує більше часу та уваги")
+        else:
+            add(7)
+
+    if activity_preference == "calm":
+        if character in ["Спокійний", "Лагідний"]:
+            add(16, "Має більш спокійний характер")
+        elif character == "Активний":
+            add(2)
+
+    if activity_preference == "balanced":
+        if character in ["Лагідний", "Спокійний"]:
+            add(10)
+        elif character == "Активний":
+            add(8)
+
+    if activity_preference == "active":
+        if character == "Активний":
+            add(16, "Підійде для активного способу життя")
+        elif age_group in ["baby", "young"]:
+            add(9)
+
+    if experience == "none":
+        if character in ["Спокійний", "Лагідний"]:
+            add(12, "Може бути кращим варіантом для першого досвіду")
+        if age_group == "adult":
+            add(8)
+        elif age_group == "baby":
+            add(2)
+
+    if experience == "some":
+        if age_group in ["young", "adult"]:
+            add(6)
+
+    if experience == "good":
+        if character == "Активний":
+            add(8)
+        if size == "Великий":
+            add(6)
+
+    if preferred_age in ["baby", "young", "adult"]:
+        labels = {
+            "baby": "малий вік",
+            "young": "молодий вік",
+            "adult": "дорослий вік"
+        }
+        if age_group == preferred_age:
+            add(12, f"Відповідає побажанню за віком: {labels[preferred_age]}")
+        elif preferred_age == "adult" and age_group == "young":
+            add(5)
+
+    if has_children == "yes":
+        if contains_any(description, [
+            "діти",
+            "дитина",
+            "дітьми",
+            "дитини",
+            "дитячий",
+            "шкільного віку",
+            "для сім'ї",
+            "для сімʼї",
+            "для родини",
+            "у родині"
+        ]):
+            add(12, "В описі є позитивна згадка про дітей")
+        elif character == "Лагідний":
+            add(6, "Лагідний характер може краще підійти для сімʼї")
+    else:
+        add(4)
+
+    if has_other_animals == "yes":
+        if contains_any(description, [
+            "з іншими тваринами",
+            "іншими тваринами",
+            "з котами",
+            "з собаками",
+            "уживається з котами",
+            "уживається з собаками",
+            "добре з іншими тваринами"
+        ]):
+            add(12, "В описі є ознаки сумісності з іншими тваринами")
+        elif character == "Лагідний":
+            add(6)
+    else:
+        add(4)
+
+    if animal.get("sterilized"):
+        add(4, "Стерилізований")
+
+    if animal.get("urgent"):
+        add(2, "Потребує швидкого прилаштування")
+
+    return min(100, score), reasons[:4]
+
+
 @app.route("/auth")
 def auth_page():
     return redirect(url_for("auth.login"))
@@ -586,9 +826,34 @@ def adopt():
     selected_ages = request.args.getlist("age")
     selected_sizes = request.args.getlist("size")
     selected_characters = request.args.getlist("character")
-
     sterilized = request.args.get("sterilized") == "true"
     urgent = request.args.get("urgent") == "true"
+
+    intelligent_mode = request.args.get("intelligent") == "1"
+
+    intelligent_preferences = {
+        "home_type": request.args.get("home_type", ""),
+        "housing_size": request.args.get("housing_size", ""),
+        "daily_time": request.args.get("daily_time", ""),
+        "activity_preference": request.args.get("activity_preference", ""),
+        "experience": request.args.get("experience", ""),
+        "has_children": request.args.get("has_children", ""),
+        "has_other_animals": request.args.get("has_other_animals", ""),
+        "preferred_type": request.args.get("preferred_type", ""),
+        "preferred_age": request.args.get("preferred_age", "")
+    }
+
+    if intelligent_mode:
+        derived_filters = derive_filters_from_preferences(intelligent_preferences)
+
+        if not selected_types:
+            selected_types = derived_filters["types"]
+
+        if not selected_sizes:
+            selected_sizes = derived_filters["sizes"]
+
+        if not selected_ages:
+            selected_ages = derived_filters["ages"]
 
     query = """
         SELECT
@@ -623,7 +888,6 @@ def adopt():
 
     if selected_types:
         type_conditions = []
-
         normal_types = [t for t in selected_types if t != "Інші"]
 
         if normal_types:
@@ -664,7 +928,6 @@ def adopt():
         if "adult" in selected_ages:
             age_conditions.append("(a.age_months > 36)")
 
-
         if age_conditions:
             query += " AND (" + " OR ".join(age_conditions) + ")"
 
@@ -690,6 +953,29 @@ def adopt():
     cur.close()
     conn.close()
 
+    if intelligent_mode:
+        for animal in animals:
+            match_score, match_reasons = calculate_match(animal, intelligent_preferences)
+            animal["match_score"] = match_score
+            animal["match_reasons"] = match_reasons
+
+        animals = sorted(
+            animals,
+            key=lambda item: (
+                item.get("match_score", 0),
+                1 if item.get("urgent") else 0
+            ),
+            reverse=True
+        )
+
+        stronger_matches = [animal for animal in animals if animal.get("match_score", 0) >= 35]
+        if stronger_matches:
+            animals = stronger_matches
+    else:
+        for animal in animals:
+            animal["match_score"] = None
+            animal["match_reasons"] = []
+
     filters = {
         "types": selected_types,
         "sexes": selected_sexes,
@@ -700,7 +986,7 @@ def adopt():
         "urgent": urgent
     }
 
-    return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters)
+    return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters, intelligent_mode=intelligent_mode, intelligent_preferences=intelligent_preferences)
 
 
 @app.route("/animal/<int:animal_id>")

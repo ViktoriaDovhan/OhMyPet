@@ -4,35 +4,52 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/adopt.css') }}">
 {% endblock %}
+
+{% set cat_checked = 'checked' if 'Кіт' in filters.types else '' %}
+{% set dog_checked = 'checked' if 'Пес' in filters.types else '' %}
+{% set other_checked = 'checked' if 'Інші' in filters.types else '' %}
+
+{% set boy_checked = 'checked' if 'Хлопчик' in filters.sexes else '' %}
+{% set girl_checked = 'checked' if 'Дівчинка' in filters.sexes else '' %}
+
+{% set baby_checked = 'checked' if 'baby' in filters.ages else '' %}
+{% set young_checked = 'checked' if 'young' in filters.ages else '' %}
+{% set adult_checked = 'checked' if 'adult' in filters.ages else '' %}
+
+{% set small_checked = 'checked' if 'Маленький' in filters.sizes else '' %}
+{% set medium_checked = 'checked' if 'Середній' in filters.sizes else '' %}
+{% set large_checked = 'checked' if 'Великий' in filters.sizes else '' %}
+
+{% set sterilized_checked = 'checked' if filters.sterilized else '' %}
+{% set urgent_checked = 'checked' if filters.urgent else '' %}
+
+{% set calm_checked = 'checked' if 'Спокійний' in filters.characters else '' %}
+{% set active_checked = 'checked' if 'Активний' in filters.characters else '' %}
+{% set kind_checked = 'checked' if 'Лагідний' in filters.characters else '' %}
+
 <section class="adopt-page">
+    <aside class="adopt-sidebar">
+        <form method="get" action="{{ url_for('adopt') }}" class="filters-card">
 
-    <aside class="filters">
-        <h3>Фільтри 🐾</h3>
+            {% if intelligent_mode %}
+                <input type="hidden" name="intelligent" value="1">
+                <input type="hidden" name="home_type" value="{{ intelligent_preferences.home_type }}">
+                <input type="hidden" name="housing_size" value="{{ intelligent_preferences.housing_size }}">
+                <input type="hidden" name="daily_time" value="{{ intelligent_preferences.daily_time }}">
+                <input type="hidden" name="activity_preference" value="{{ intelligent_preferences.activity_preference }}">
+                <input type="hidden" name="experience" value="{{ intelligent_preferences.experience }}">
+                <input type="hidden" name="has_children" value="{{ intelligent_preferences.has_children }}">
+                <input type="hidden" name="has_other_animals" value="{{ intelligent_preferences.has_other_animals }}">
+                <input type="hidden" name="preferred_type" value="{{ intelligent_preferences.preferred_type }}">
+                <input type="hidden" name="preferred_age" value="{{ intelligent_preferences.preferred_age }}">
+            {% endif %}
 
-        <form method="get" action="{{ url_for('adopt') }}">
+            <div class="filters-head">
+                <span class="filters-kicker">Фільтри 🐾</span>
+                <p>Якщо вже знаєте, кого саме шукаєте, скористайтесь готовими фільтрами</p>
+            </div>
+
             <div class="filter-group">
-                {% set cat_checked = 'checked' if 'Кіт' in filters.types else '' %}
-                {% set dog_checked = 'checked' if 'Пес' in filters.types else '' %}
-                {% set other_checked = 'checked' if 'Інші' in filters.types else '' %}
-
-                {% set boy_checked = 'checked' if 'Хлопчик' in filters.sexes else '' %}
-                {% set girl_checked = 'checked' if 'Дівчинка' in filters.sexes else '' %}
-
-                {% set baby_checked = 'checked' if 'baby' in filters.ages else '' %}
-                {% set young_checked = 'checked' if 'young' in filters.ages else '' %}
-                {% set adult_checked = 'checked' if 'adult' in filters.ages else '' %}
-
-                {% set small_checked = 'checked' if 'Маленький' in filters.sizes else '' %}
-                {% set medium_checked = 'checked' if 'Середній' in filters.sizes else '' %}
-                {% set large_checked = 'checked' if 'Великий' in filters.sizes else '' %}
-
-                {% set sterilized_checked = 'checked' if filters.sterilized else '' %}
-                {% set urgent_checked = 'checked' if filters.urgent else '' %}
-
-                {% set calm_checked = 'checked' if 'Спокійний' in filters.characters else '' %}
-                {% set active_checked = 'checked' if 'Активний' in filters.characters else '' %}
-                {% set kind_checked = 'checked' if 'Лагідний' in filters.characters else '' %}
-
                 <p>Тип тварини</p>
                 <div class="pill-group">
                     <label class="pill-checkbox">
@@ -142,18 +159,43 @@
     <main class="adopt-content">
         <h1>Знайди друга серця 💕</h1>
 
+        <div class="adopt-top-panel">
+            <div class="smart-note">
+                <strong>Не знаєте, кого саме хочете?</strong>
+                Інтелектуальний підбір допоможе автоматично підібрати тваринку під ваші умови проживання, кількість вільного часу та побажання. Якщо ж ви вже знаєте, кого шукаєте, радимо скористатися звичайними фільтрами ліворуч
+            </div>
+
+            <button type="button" class="smart-btn" id="openSmartPicker">
+                Інтелектуальний підбір
+            </button>
+        </div>
+
         <div class="pet-grid">
             {% for animal in animals %}
                 <div class="pet-card purple">
-                    <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}">
+                    <div class="pet-image-wrap">
+                        <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}">
+
+                        {% if animal.urgent %}
+                            <span class="urgent-badge">Термінова адопція</span>
+                        {% endif %}
+
+                        {% if intelligent_mode and animal.match_score is not none %}
+                            <span class="match-badge">{{ animal.match_score }}% збіг</span>
+                        {% endif %}
+                    </div>
                     <h3>{{ animal.name }}</h3>
                     <p>Вік: {{ animal.age_months }} міс.</p>
                     <p>Стать: {{ animal.sex }}</p>
                     <p>Тип: {{ animal.animal_type }}</p>
                     <p>Розмір: {{ animal.size }}</p>
 
-                    {% if animal.urgent %}
-                        <p>Термінова адопція</p>
+                    {% if intelligent_mode and animal.match_reasons %}
+                        <div class="match-reasons">
+                            {% for reason in animal.match_reasons %}
+                                <span>{{ reason }}</span>
+                            {% endfor %}
+                        </div>
                     {% endif %}
 
                     <a href="{{ url_for('animal_details', animal_id=animal.id) }}" class="details-btn">Детальніше ♡</a>
@@ -165,5 +207,155 @@
     </main>
 
 </section>
+
+<div class="smart-modal" id="smartModal">
+    <div class="smart-backdrop" id="closeSmartPicker"></div>
+
+    <div class="smart-modal-content">
+        <button type="button" class="smart-close" id="closeSmartPickerBtn">×</button>
+
+        <div class="smart-header">
+            <h2>Інтелектуальний підбір</h2>
+            <p>
+                Заповніть коротку форму, і система підбере тваринок, які можуть найкраще відповідати вашому способу життя
+            </p>
+        </div>
+
+        <div class="smart-warning">
+            Ця форма найбільше підходить тим, хто ще не визначився, кого саме хоче взяти. Якщо ви вже знаєте бажаний тип, вік або розмір тварини, краще скористатися звичайними фільтрами
+        </div>
+
+        <form method="get" action="{{ url_for('adopt') }}" class="smart-form">
+            <input type="hidden" name="intelligent" value="1">
+
+            <div class="smart-form-grid">
+                <label>
+                    <span>Тип житла</span>
+                    <select name="home_type" required>
+                        <option value="">Оберіть</option>
+                        <option value="apartment">Квартира</option>
+                        <option value="house">Будинок</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Площа житла</span>
+                    <select name="housing_size" required>
+                        <option value="">Оберіть</option>
+                        <option value="small">Невелика</option>
+                        <option value="medium">Середня</option>
+                        <option value="large">Простора</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Скільки часу ви проводите вдома</span>
+                    <select name="daily_time" required>
+                        <option value="">Оберіть</option>
+                        <option value="low">Небагато</option>
+                        <option value="medium">Помірно</option>
+                        <option value="high">Багато</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Який характер тварини вам ближчий</span>
+                    <select name="activity_preference" required>
+                        <option value="">Оберіть</option>
+                        <option value="calm">Спокійний</option>
+                        <option value="balanced">Помірний</option>
+                        <option value="active">Активний</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Ваш досвід догляду за тваринами</span>
+                    <select name="experience" required>
+                        <option value="">Оберіть</option>
+                        <option value="none">Немає досвіду</option>
+                        <option value="some">Є базовий досвід</option>
+                        <option value="good">Досвід великий</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Чи є у вас діти</span>
+                    <select name="has_children" required>
+                        <option value="">Оберіть</option>
+                        <option value="no">Ні</option>
+                        <option value="yes">Так</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Чи є у вас інші тварини</span>
+                    <select name="has_other_animals" required>
+                        <option value="">Оберіть</option>
+                        <option value="no">Ні</option>
+                        <option value="yes">Так</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Бажаний тип тварини</span>
+                    <select name="preferred_type">
+                        <option value="">Будь-який</option>
+                        <option value="Кіт">Кіт</option>
+                        <option value="Пес">Пес</option>
+                    </select>
+                </label>
+
+                <label class="full-width">
+                    <span>Бажаний вік</span>
+                    <select name="preferred_age">
+                        <option value="">Будь-який</option>
+                        <option value="baby">До 1 року</option>
+                        <option value="young">1–3 роки</option>
+                        <option value="adult">3+ років</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="smart-actions">
+                <button type="submit" class="apply-btn">Підібрати тваринку</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const smartModal = document.getElementById("smartModal");
+    const openSmartPicker = document.getElementById("openSmartPicker");
+    const closeSmartPicker = document.getElementById("closeSmartPicker");
+    const closeSmartPickerBtn = document.getElementById("closeSmartPickerBtn");
+
+    function openModal() {
+        smartModal.classList.add("open");
+        document.body.classList.add("modal-open");
+    }
+
+    function closeModal() {
+        smartModal.classList.remove("open");
+        document.body.classList.remove("modal-open");
+    }
+
+    if (openSmartPicker) {
+        openSmartPicker.addEventListener("click", openModal);
+    }
+
+    if (closeSmartPicker) {
+        closeSmartPicker.addEventListener("click", closeModal);
+    }
+
+    if (closeSmartPickerBtn) {
+        closeSmartPickerBtn.addEventListener("click", closeModal);
+    }
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") {
+            closeModal();
+        }
+    });
+</script>
 
 {% endblock %}
