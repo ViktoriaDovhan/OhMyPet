@@ -152,7 +152,9 @@
 
                     <div class="form-group">
                         <label>Тип тварини</label>
-                        <input type="text" name="animal_type" placeholder="Кіт або Пес" required>
+                        <input type="text" name="animal_type" id="animal_type_input" placeholder="Кіт, Пес, Кролик..." required>
+                        <div id="animal_type_suggestion" hidden></div>
+                        <button type="button" id="apply_type_btn" class="profile-outline-btn" hidden>Підставити тип</button>
                     </div>
 
                     <div class="form-group">
@@ -172,12 +174,18 @@
 
                     <div class="form-group">
                         <label>Розмір</label>
-                        <input type="text" name="size" placeholder="Малий / Середній / Великий">
+                        <select name="size" id="size_input">
+                            <option value="">Оберіть розмір</option>
+                            <option value="Маленький">Маленький</option>
+                            <option value="Середній">Середній</option>
+                            <option value="Великий">Великий</option>
+                        </select>
+                        <div id="size_suggestion" hidden></div>
+                        <button type="button" id="apply_size_btn" class="profile-outline-btn" hidden>Підставити розмір</button>
                     </div>
 
                     <div class="form-group">
                         <label>Характер</label>
-
                         <select name="character_select" id="character_select_add" onchange="toggleCharacterInput('add')">
                             <option value="">Оберіть характер</option>
                             <option value="Лагідний">Лагідний</option>
@@ -188,13 +196,22 @@
                             <option value="Сором’язливий">Сором’язливий</option>
                             <option value="__other__">Інше</option>
                         </select>
-
-                        <input type="text" name="character_custom" id="character_custom_add" placeholder="Введіть свій варіант" style="display: none; margin-top: 10px;">
+                        <input type="text" name="character_custom" id="character_custom_add" placeholder="Введіть свій варіант" hidden>
                     </div>
 
                     <div class="form-group">
                         <label>Забарвлення</label>
-                        <input type="text" name="color">
+                        <select name="color" id="color_input">
+                            <option value="">Оберіть забарвлення</option>
+                            <option value="Чорне">Чорне</option>
+                            <option value="Біле">Біле</option>
+                            <option value="Сіре">Сіре</option>
+                            <option value="Руде">Руде</option>
+                            <option value="Коричневе">Коричневе</option>
+                            <option value="Змішане">Змішане</option>
+                        </select>
+                        <div id="color_suggestion" hidden></div>
+                        <button type="button" id="apply_color_btn" class="profile-outline-btn" hidden>Підставити забарвлення</button>
                     </div>
 
                     <div class="form-group">
@@ -204,10 +221,13 @@
 
                     <div class="form-group">
                         <label>Фото</label>
-                        <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>                    </div>
+                        <input type="file" name="photos" id="animal_photos_input" accept=".png,.jpg,.jpeg,.webp" multiple>
+                        <button type="button" id="cv_predict_btn" class="profile-outline-btn">Запропонувати значення</button>
+                        <div id="cv_common_message" hidden></div>
+                    </div>
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group bottom-margin">
                     <label>Опис</label>
                     <textarea name="description" rows="5"></textarea>
                 </div>
@@ -300,25 +320,24 @@
                         <input type="text" name="size" value="{{ animal_to_edit.size or '' }}">
                     </div>
 
+                    {% set default_characters = ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}
+                    {% set current_character = animal_to_edit.character or '' %}
+                    {% set custom_character = current_character if current_character not in default_characters else '' %}
+                    {% set selected_character = '__other__' if custom_character else current_character %}
+
                     <div class="form-group">
                         <label>Характер</label>
-
-                        <select name="character_select" id="character_select_edit" onchange="toggleCharacterInput('edit')">
+                        <select name="character_select" id="character_select_edit" onchange="toggleCharacterInput('edit')" data-current="{{ selected_character }}">
                             <option value="">Оберіть характер</option>
-                            <option value="Лагідний" {% if animal_to_edit.character == 'Лагідний' %}selected{% endif %}>Лагідний</option>
-                            <option value="Грайливий" {% if animal_to_edit.character == 'Грайливий' %}selected{% endif %}>Грайливий</option>
-                            <option value="Спокійний" {% if animal_to_edit.character == 'Спокійний' %}selected{% endif %}>Спокійний</option>
-                            <option value="Дружній" {% if animal_to_edit.character == 'Дружній' %}selected{% endif %}>Дружній</option>
-                            <option value="Активний" {% if animal_to_edit.character == 'Активний' %}selected{% endif %}>Активний</option>
-                            <option value="Сором’язливий" {% if animal_to_edit.character == 'Сором’язливий' %}selected{% endif %}>Сором’язливий</option>
-                            <option value="__other__"
-                                {% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}
-                                    selected
-                                {% endif %}
-                            >Інше</option>
+                            <option value="Лагідний">Лагідний</option>
+                            <option value="Грайливий">Грайливий</option>
+                            <option value="Спокійний">Спокійний</option>
+                            <option value="Дружній">Дружній</option>
+                            <option value="Активний">Активний</option>
+                            <option value="Сором’язливий">Сором’язливий</option>
+                            <option value="__other__">Інше</option>
                         </select>
-
-                        <input type="text" name="character_custom" id="character_custom_edit" placeholder="Введіть свій варіант" value="{% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}{{ animal_to_edit.character }}{% endif %}" style="{% if animal_to_edit.character not in ['Лагідний', 'Грайливий', 'Спокійний', 'Дружній', 'Активний', 'Сором’язливий'] %}display: block; margin-top: 10px;{% else %}display: none; margin-top: 10px;{% endif %}">
+                        <input type="text" name="character_custom" id="character_custom_edit" placeholder="Введіть свій варіант" value="{{ custom_character }}" hidden>
                     </div>
 
                     <div class="form-group">
@@ -336,7 +355,7 @@
                         <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>                    </div>
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group bottom-margin">
                     <label>Опис</label>
                     <textarea name="description" rows="5">{{ animal_to_edit.description or '' }}</textarea>
                 </div>
@@ -389,11 +408,6 @@
                 <a href="{{ url_for('shelter_profile', section='analytics', module='nlp') }}"
                    class="analytics-tab-btn {% if analytics_module == 'nlp' %}active{% endif %}">
                     NLP модуль
-                </a>
-
-                <a href="{{ url_for('shelter_profile', section='analytics', module='cv') }}"
-                   class="analytics-tab-btn {% if analytics_module == 'cv' %}active{% endif %}">
-                    CV модуль
                 </a>
             </div>
 
@@ -679,7 +693,7 @@
 
                                     <p><strong>Текст:</strong> {{ item.note_text }}</p>
                                     <p><strong>Ключові слова:</strong> {{ item.keywords }}</p>
-                                    <p><strong>Flags:</strong> {{ item.flags }}</p>
+                                    <p><strong>Позначки:</strong> {{ item.flags }}</p>
                                     <p><strong>Фрагмент-пояснення:</strong> {{ item.evidence_fragment }}</p>
                                     <p><strong>Дата аналізу:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
                                 </div>
@@ -688,14 +702,6 @@
                     {% else %}
                         <p class="empty-text">Поки що NLP-аналізів немає.</p>
                     {% endif %}
-                </div>
-
-            {% elif analytics_module == 'cv' %}
-                <div class="analytics-block">
-                    <h3>CV модуль</h3>
-                    <p class="analytics-description">
-                        Тут буде рекомендація типу тварини на основі зображення під час створення анкети.
-                    </p>
                 </div>
             {% endif %}
         </div>
@@ -734,18 +740,185 @@
         </div>
     {% endif %}
 <script>
-function toggleCharacterInput(mode) {
-    const select = document.getElementById(`character_select_${mode}`);
-    const input = document.getElementById(`character_custom_${mode}`);
+    function toggleCharacterInput(mode) {
+        const select = document.getElementById(`character_select_${mode}`);
+        const input = document.getElementById(`character_custom_${mode}`);
 
-    if (!select || !input) return;
+        if (!select || !input) return;
 
-    if (select.value === "__other__") {
-        input.style.display = "block";
-    } else {
-        input.style.display = "none";
-        input.value = "";
+        if (select.value === "__other__") {
+            input.hidden = false;
+        } else {
+            input.hidden = true;
+            input.value = "";
+        }
     }
-}
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const editSelect = document.getElementById("character_select_edit");
+        const editInput = document.getElementById("character_custom_edit");
+
+        if (editSelect) {
+            const currentValue = editSelect.dataset.current || "";
+            editSelect.value = currentValue;
+
+            if (currentValue === "__other__" && editInput && editInput.value.trim() !== "") {
+                editInput.hidden = false;
+            } else if (editInput) {
+                editInput.hidden = true;
+            }
+        }
+
+        const addSelect = document.getElementById("character_select_add");
+        const addInput = document.getElementById("character_custom_add");
+
+        if (addSelect && addInput) {
+            if (addSelect.value === "__other__") {
+                addInput.hidden = false;
+            } else {
+                addInput.hidden = true;
+            }
+        }
+    });
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const photoInput = document.getElementById("animal_photos_input");
+        const predictBtn = document.getElementById("cv_predict_btn");
+
+        if (!photoInput || !predictBtn) {
+            return;
+        }
+
+        const animalTypeInput = document.getElementById("animal_type_input");
+        const sizeInput = document.getElementById("size_input");
+        const colorInput = document.getElementById("color_input");
+
+        const animalTypeSuggestion = document.getElementById("animal_type_suggestion");
+        const sizeSuggestion = document.getElementById("size_suggestion");
+        const colorSuggestion = document.getElementById("color_suggestion");
+
+        const applyTypeBtn = document.getElementById("apply_type_btn");
+        const applySizeBtn = document.getElementById("apply_size_btn");
+        const applyColorBtn = document.getElementById("apply_color_btn");
+
+        const commonMessage = document.getElementById("cv_common_message");
+
+        let predictedType = "";
+        let predictedSize = "";
+        let predictedColor = "";
+
+        function setSuggestion(element, text) {
+            element.textContent = text;
+            element.hidden = false;
+        }
+
+        function clearSuggestion(element) {
+            element.textContent = "";
+            element.hidden = true;
+        }
+
+        function resetCvState() {
+            predictedType = "";
+            predictedSize = "";
+            predictedColor = "";
+
+            clearSuggestion(animalTypeSuggestion);
+            clearSuggestion(sizeSuggestion);
+            clearSuggestion(colorSuggestion);
+
+            applyTypeBtn.hidden = true;
+            applySizeBtn.hidden = true;
+            applyColorBtn.hidden = true;
+
+            commonMessage.textContent = "";
+            commonMessage.hidden = true;
+        }
+
+        predictBtn.addEventListener("click", async function () {
+            if (!photoInput.files || photoInput.files.length === 0) {
+                alert("Спочатку вибери фото");
+                return;
+            }
+
+            resetCvState();
+
+            const formData = new FormData();
+            formData.append("photo", photoInput.files[0]);
+
+            predictBtn.disabled = true;
+            predictBtn.textContent = "Аналіз...";
+
+            try {
+                const response = await fetch("/api/cv/predict-animal-fields", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.message || "Не вдалося отримати рекомендації");
+                    return;
+                }
+
+                const typePrediction = data.predictions.animal_type;
+                const sizePrediction = data.predictions.size;
+                const colorPrediction = data.predictions.color;
+
+                predictedType = typePrediction.label;
+                predictedSize = sizePrediction.label;
+                predictedColor = colorPrediction.label;
+
+                setSuggestion(
+                    animalTypeSuggestion,
+                    `Рекомендація: ${typePrediction.label} (${typePrediction.confidence}%)`
+                );
+
+                setSuggestion(
+                    sizeSuggestion,
+                    `Рекомендація: ${sizePrediction.label} (${sizePrediction.confidence}%)`
+                );
+
+                setSuggestion(
+                    colorSuggestion,
+                    `Рекомендація: ${colorPrediction.label} (${colorPrediction.confidence}%)`
+                );
+
+                if (typePrediction.allow_apply) {
+                    applyTypeBtn.hidden = false;
+                } else {
+                    commonMessage.textContent = "Тип тварини визначено як «Інше». Введи значення вручну.";
+                    commonMessage.hidden = false;
+                }
+
+                applySizeBtn.hidden = false;
+                applyColorBtn.hidden = false;
+            } catch (error) {
+                alert("Помилка під час звернення до CV-модуля");
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = "Запропонувати значення";
+            }
+        });
+
+        applyTypeBtn.addEventListener("click", function () {
+            if (predictedType) {
+                animalTypeInput.value = predictedType;
+            }
+        });
+
+        applySizeBtn.addEventListener("click", function () {
+            if (predictedSize) {
+                sizeInput.value = predictedSize;
+            }
+        });
+
+        applyColorBtn.addEventListener("click", function () {
+            if (predictedColor) {
+                colorInput.value = predictedColor;
+            }
+        });
+    });
 </script>
 {% endblock %}

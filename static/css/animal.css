@@ -368,10 +368,6 @@
     margin-top: 0;
 }
 
-body.modal-open {
-    overflow: hidden;
-}
-
 @media (max-width: 1100px) {
     .animal-hero {
         grid-template-columns: 1fr;

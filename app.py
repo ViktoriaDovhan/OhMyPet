@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort, redirect, url_for, session
+from flask import Flask, render_template, request, abort, redirect, url_for, session, jsonify
 from psycopg2.extras import RealDictCursor
 from auth import auth
 from database.db import get_connection
@@ -6,6 +6,7 @@ from functools import wraps
 import os, uuid, re
 from werkzeug.utils import secure_filename
 from datetime import timedelta
+from cv.predictor import predict_animal_fields as predict_fields_from_photo
 import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
@@ -1671,6 +1672,34 @@ def delete_nlp_analysis(analysis_id):
     conn.close()
 
     return redirect(url_for("shelter_profile", section="analytics", module="nlp"))
+
+
+@app.route("/api/cv/predict-animal-fields", methods=["POST"])
+@admin_required
+def cv_predict_animal_fields():
+    photo = request.files.get("photo")
+
+    if not photo or not photo.filename:
+        return jsonify({
+            "success": False,
+            "message": "Фото не вибрано"
+        }), 400
+
+    try:
+        predictions = predict_fields_from_photo(photo)
+
+        return jsonify({
+            "success": True,
+            "predictions": predictions
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            "success": False,
+            "message": f"Помилка CV-модуля: {str(e)}"
+        }), 500
 
 
 if __name__ == "__main__":
