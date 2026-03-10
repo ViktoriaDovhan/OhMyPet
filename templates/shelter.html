@@ -614,10 +614,80 @@
 
             {% elif analytics_module == 'nlp' %}
                 <div class="analytics-block">
-                    <h3>NLP модуль</h3>
+                    <div class="analytics-block-header">
+                        <h3>NLP модуль</h3>
+                    </div>
+
                     <p class="analytics-description">
-                        Тут буде аналіз текстових нотаток, виділення ключових слів і прапорців для корму або тварин.
+                        Аналіз виконується на основі україномовної трансформерної моделі LiBERTa.
+                        Нотатка нормалізується, після чого система формує структуровані ознаки,
+                        зберігає класифікаційні мітки, рівень впевненості та фрагмент тексту,
+                        який став підставою для висновку.
                     </p>
+
+                    <div class="analytics-form-block">
+                        <h4>Проаналізувати нотатку</h4>
+
+                        <form method="post" action="{{ url_for('analyze_nlp_note') }}" class="nlp-form-grid">
+                            <div class="form-group">
+                                <label>Тип нотатки</label>
+                                <select name="entity_type" required>
+                                    <option value="FOOD">Про корм</option>
+                                    <option value="ANIMAL">Про тварину</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Назва / кличка</label>
+                                <input type="text" name="target_name" placeholder="Наприклад: Мурчик або Сухий корм">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Текст нотатки</label>
+                                <textarea name="note_text" rows="5" placeholder="Наприклад: Корм майже закінчується, у складі є курка, тому для тварин з алергією цей корм небажаний." required></textarea>
+                            </div>
+
+                            <div class="form-group analytics-form-btn-wrap">
+                                <button type="submit" class="profile-main-btn">Проаналізувати</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {% if nlp_history %}
+                        <div class="nlp-results-list">
+                            {% for item in nlp_history %}
+                                <div class="nlp-result-card">
+                                    <div class="nlp-result-top">
+                                        <h4>
+                                            {% if item.entity_type == 'FOOD' %}
+                                                Нотатка про корм
+                                            {% else %}
+                                                Нотатка про тварину
+                                            {% endif %}
+                                        </h4>
+
+                                        <form method="post"
+                                              action="{{ url_for('delete_nlp_analysis', analysis_id=item.id) }}"
+                                              onsubmit="return confirm('Видалити цей NLP-аналіз?')">
+                                            <button type="submit" class="table-action-btn delete">Видалити</button>
+                                        </form>
+                                    </div>
+
+                                    {% if item.target_name %}
+                                        <p><strong>Назва:</strong> {{ item.target_name }}</p>
+                                    {% endif %}
+
+                                    <p><strong>Текст:</strong> {{ item.note_text }}</p>
+                                    <p><strong>Ключові слова:</strong> {{ item.keywords }}</p>
+                                    <p><strong>Flags:</strong> {{ item.flags }}</p>
+                                    <p><strong>Фрагмент-пояснення:</strong> {{ item.evidence_fragment }}</p>
+                                    <p><strong>Дата аналізу:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="empty-text">Поки що NLP-аналізів немає.</p>
+                    {% endif %}
                 </div>
 
             {% elif analytics_module == 'cv' %}

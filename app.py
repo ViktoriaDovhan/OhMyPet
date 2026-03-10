@@ -3,9 +3,12 @@ from psycopg2.extras import RealDictCursor
 from auth import auth
 from database.db import get_connection
 from functools import wraps
-import os, uuid
+import os, uuid, re
 from werkzeug.utils import secure_filename
 from datetime import timedelta
+import torch
+import torch.nn.functional as F
+from transformers import AutoTokenizer, AutoModel
 
 app = Flask(__name__)
 app.secret_key = "secret-key"
@@ -16,6 +19,487 @@ ANIMAL_UPLOAD_FOLDER = os.path.join(app.static_folder, "images", "animals")
 os.makedirs(ANIMAL_UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+LIBERTA_MODEL_NAME = "Goader/liberta-large"
+
+LIBERTA_LABEL_PROTOTYPES = {
+    "allergy_risk": "Нотатка про алергію, алерген, небажаний інгредієнт у кормі або алергічну реакцію тварини.",
+    "stock_warning": "Нотатка про те, що корм закінчується, запас малий, потрібно поповнення або нове замовлення.",
+    "urgent_attention": "Нотатка про термінову, критичну або невідкладну потребу.",
+    "medical_diet": "Нотатка про лікувальний корм, спеціальну дієту, ветеринарне харчування або особливі потреби.",
+    "appetite_problem": "Нотатка про поганий апетит, відмову від їжі або проблему з годуванням.",
+    "friendly_behavior": "Нотатка про спокійну, лагідну, дружню або контактну поведінку тварини.",
+    "aggressive_behavior": "Нотатка про агресивну поведінку, гарчання, укуси або проблемну реакцію тварини.",
+    "kids_compatibility": "Нотатка про сумісність тварини з дітьми.",
+    "animal_compatibility": "Нотатка про сумісність тварини з іншими тваринами.",
+    "storage_or_expiry": "Нотатка про термін придатності, умови зберігання або псування корму.",
+    "general_note": "Звичайна інформаційна нотатка без явно критичних ознак."
+}
+
+FLAG_LABELS = {
+    "allergy_risk": "ризик алергії",
+    "stock_warning": "закінчується запас",
+    "urgent_attention": "потрібна термінова увага",
+    "medical_diet": "лікувальна дієта",
+    "appetite_problem": "проблема з апетитом",
+    "friendly_behavior": "дружня поведінка",
+    "aggressive_behavior": "агресивна поведінка",
+    "kids_compatibility": "сумісність з дітьми",
+    "animal_compatibility": "сумісність з іншими тваринами",
+    "storage_or_expiry": "термін придатності / зберігання",
+    "general_note": "загальна нотатка"
+}
+
+KEYWORD_HINTS = {
+    "allergy_risk": [
+        "алергія", "алерген", "курка", "корм", "реакція", "небажаний",
+        "чутливість", "чутливий", "почервоніння", "чухання", "свербіж", "інгредієнт"
+    ],
+    "stock_warning": [
+        "закінчується", "запас", "замовлення", "мало", "залишилось", "поповнення"
+    ],
+    "urgent_attention": [
+        "терміново", "негайно", "критично", "увага", "невідкладно"
+    ],
+    "medical_diet": [
+        "лікувальний", "дієта", "ветеринарний", "спеціальний корм", "раціон"
+    ],
+    "appetite_problem": [
+        "не їсть", "апетит", "відмовляється", "годування",
+        "не доїдає", "менш стабільний", "без особливого інтересу"
+    ],
+    "friendly_behavior": [
+        "спокійний", "лагідний", "дружній", "контактний", "не проявляє агресії"
+    ],
+    "aggressive_behavior": [
+        "агресивний", "гарчить", "кусається", "нападає"
+    ],
+    "kids_compatibility": [
+        "діти", "дитина", "із дітьми", "з дітьми"
+    ],
+    "animal_compatibility": [
+        "інші тварини", "коти", "собаки", "тваринами", "з іншими котами"
+    ],
+    "storage_or_expiry": [
+        "термін придатності", "зберігати", "зберігання", "псується", "упаковка"
+    ],
+    "general_note": ["нотатка"]
+}
+
+LABEL_THRESHOLDS = {
+    "allergy_risk": 0.58,
+    "stock_warning": 0.60,
+    "urgent_attention": 0.62,
+    "medical_diet": 0.58,
+    "appetite_problem": 0.56,
+    "friendly_behavior": 0.60,
+    "aggressive_behavior": 0.60,
+    "kids_compatibility": 0.55,
+    "animal_compatibility": 0.55,
+    "storage_or_expiry": 0.58,
+    "general_note": 0.72
+}
+
+ANIMAL_LABEL_KEYS = [
+    "allergy_risk",
+    "appetite_problem",
+    "friendly_behavior",
+    "aggressive_behavior",
+    "kids_compatibility",
+    "animal_compatibility",
+    "general_note"
+]
+
+FOOD_LABEL_KEYS = [
+    "allergy_risk",
+    "stock_warning",
+    "urgent_attention",
+    "medical_diet",
+    "storage_or_expiry",
+    "general_note"
+]
+
+_liberta_tokenizer = None
+_liberta_model = None
+_label_embeddings = None
+_label_keys = list(LIBERTA_LABEL_PROTOTYPES.keys())
+
+
+def get_active_label_keys(entity_type):
+    if entity_type == "ANIMAL":
+        return ANIMAL_LABEL_KEYS
+    return FOOD_LABEL_KEYS
+
+
+def normalize_nlp_text(text):
+    text = text.lower().strip()
+    text = text.replace("’", "'").replace("`", "'")
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def split_uk_sentences(text):
+    parts = re.split(r"(?<=[\.\!\?])\s+|\n+", text.strip())
+    return [p.strip() for p in parts if p.strip()]
+
+
+def get_liberta():
+    global _liberta_tokenizer, _liberta_model
+
+    if _liberta_tokenizer is None:
+        _liberta_tokenizer = AutoTokenizer.from_pretrained(
+            LIBERTA_MODEL_NAME,
+            trust_remote_code=True
+        )
+
+    if _liberta_model is None:
+        _liberta_model = AutoModel.from_pretrained(LIBERTA_MODEL_NAME)
+        _liberta_model.eval()
+
+    return _liberta_tokenizer, _liberta_model
+
+
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output.last_hidden_state
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, dim=1) / torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
+
+
+def encode_texts_liberta(texts):
+    tokenizer, model = get_liberta()
+
+    encoded = tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=256,
+        return_tensors="pt"
+    )
+
+    with torch.no_grad():
+        output = model(**encoded)
+        embeddings = mean_pooling(output, encoded["attention_mask"])
+        embeddings = F.normalize(embeddings, p=2, dim=1)
+
+    return embeddings
+
+
+def get_label_embeddings():
+    global _label_embeddings
+
+    if _label_embeddings is None:
+        prototype_texts = [LIBERTA_LABEL_PROTOTYPES[key] for key in _label_keys]
+        _label_embeddings = encode_texts_liberta(prototype_texts)
+
+    return _label_embeddings
+
+
+def extract_keywords_from_text(normalized_text, selected_labels):
+    found = []
+
+    for label in selected_labels:
+        hints = KEYWORD_HINTS.get(label, [])
+        for hint in hints:
+            if hint in normalized_text and hint not in found:
+                found.append(hint)
+
+    if not found:
+        found.append("немає явних ключових слів")
+
+    return ", ".join(found)
+
+
+def score_sentence_for_label(sentence, label_key):
+    normalized_sentence = normalize_nlp_text(sentence)
+    hints = KEYWORD_HINTS.get(label_key, [])
+
+    hint_score = 0
+    for hint in hints:
+        if hint in normalized_sentence:
+            hint_score += 1
+
+    sentence_embedding = encode_texts_liberta([normalized_sentence])
+    label_embeddings = get_label_embeddings()
+    label_index = _label_keys.index(label_key)
+
+    similarity = torch.mm(sentence_embedding, label_embeddings[label_index].unsqueeze(0).T).item()
+
+    return similarity + hint_score * 0.25
+
+
+def find_best_evidence_for_label(sentences, normalized_sentences, sentence_embeddings, label_key):
+    label_embeddings = get_label_embeddings()
+    label_index = _label_keys.index(label_key)
+    label_vector = label_embeddings[label_index]
+
+    hints = KEYWORD_HINTS.get(label_key, [])
+    sim_scores = torch.mv(sentence_embeddings, label_vector)
+
+    best_idx = 0
+    best_score = -999
+
+    for i, sentence in enumerate(normalized_sentences):
+        hint_score = 0
+        for hint in hints:
+            if hint in sentence:
+                hint_score += 0.25
+
+        total_score = float(sim_scores[i].item()) + hint_score
+
+        if total_score > best_score:
+            best_score = total_score
+            best_idx = i
+
+    if label_key == "allergy_risk":
+        current = normalized_sentences[best_idx]
+
+        symptom_terms = ["почервон", "чухан", "сверб", "реакц"]
+        strong_cause_terms = ["курк", "інгредієнт", "небажан", "чутлив", "алергі", "білков"]
+
+        has_symptoms = any(x in current for x in symptom_terms)
+        has_strong_cause = any(x in current for x in strong_cause_terms)
+
+        if has_symptoms and not has_strong_cause:
+            if best_idx > 0:
+                prev_sentence = normalized_sentences[best_idx - 1]
+                if any(x in prev_sentence for x in strong_cause_terms) or "корм" in prev_sentence:
+                    return sentences[best_idx - 1].strip() + " " + sentences[best_idx].strip()
+
+            if best_idx + 1 < len(sentences):
+                next_sentence = normalized_sentences[best_idx + 1]
+                if any(x in next_sentence for x in strong_cause_terms):
+                    return sentences[best_idx].strip() + " " + sentences[best_idx + 1].strip()
+
+    return sentences[best_idx].strip()
+
+
+def find_evidence_fragment(note_text, selected_labels):
+    sentences = split_uk_sentences(note_text)
+
+    if not sentences:
+        return note_text[:180]
+
+    normalized_sentences = [normalize_nlp_text(s) for s in sentences]
+    sentence_embeddings = encode_texts_liberta(normalized_sentences)
+
+    selected_sentences = []
+
+    for label_key in selected_labels:
+        evidence = find_best_evidence_for_label(
+            sentences,
+            normalized_sentences,
+            sentence_embeddings,
+            label_key
+        )
+
+        if evidence and evidence not in selected_sentences:
+            selected_sentences.append(evidence)
+
+    return " | ".join(selected_sentences[:3])
+
+
+def analyze_note_with_liberta(note_text, entity_type):
+    normalized_text = normalize_nlp_text(note_text)
+
+    text_embedding = encode_texts_liberta([normalized_text])
+    all_label_embeddings = get_label_embeddings()
+
+    active_label_keys = get_active_label_keys(entity_type)
+    active_indices = [_label_keys.index(label) for label in active_label_keys]
+    active_label_embeddings = all_label_embeddings[active_indices]
+
+    similarities = torch.mm(text_embedding, active_label_embeddings.T).squeeze(0)
+    probs = torch.sigmoid(similarities * 3.5)
+
+    base_scores = {}
+    for i, label_key in enumerate(active_label_keys):
+        base_scores[label_key] = float(probs[i].item())
+
+    label_scores = dict(base_scores)
+    label_scores, forced_labels = apply_domain_rules(normalized_text, label_scores, entity_type)
+
+    ranked = sorted(label_scores.items(), key=lambda x: x[1], reverse=True)
+
+    selected_labels = []
+    for label_key, score in ranked:
+        threshold = LABEL_THRESHOLDS.get(label_key, 0.60)
+        if label_key in forced_labels or score >= threshold:
+            selected_labels.append(label_key)
+
+    if not selected_labels and ranked:
+        selected_labels = [ranked[0][0]]
+
+    if len(selected_labels) > 1 and "general_note" in selected_labels:
+        selected_labels = [label for label in selected_labels if label != "general_note"]
+
+    selected_labels = selected_labels[:5]
+
+    confidence_scores = [round(base_scores[label], 4) for label in selected_labels]
+
+    keywords = extract_keywords_from_text(normalized_text, selected_labels)
+    flags = ", ".join(FLAG_LABELS[label] for label in selected_labels)
+    predicted_labels = ", ".join(selected_labels)
+    confidence_text = ", ".join(str(score) for score in confidence_scores)
+    evidence_fragment = find_evidence_fragment(note_text, selected_labels)
+
+    return {
+        "normalized_text": normalized_text,
+        "keywords": keywords,
+        "flags": flags,
+        "predicted_labels": predicted_labels,
+        "confidence_scores": confidence_text,
+        "evidence_fragment": evidence_fragment
+    }
+
+
+def apply_domain_rules(normalized_text, label_scores, entity_type):
+    forced_labels = set()
+
+    if entity_type == "ANIMAL":
+        no_aggression_patterns = [
+            r"\bне\s+проявля\w*\s+агрес",
+            r"\bне\s+агресив",
+            r"\bбез\s+агрес",
+            r"\bагрес\w*\s+не\s+проявля\w*",
+            r"\bагрес\w*\s+нема",
+            r"\bагрес\w*\s+відсут"
+        ]
+
+        has_no_aggression = any(re.search(pattern, normalized_text) for pattern in no_aggression_patterns)
+
+        if has_no_aggression:
+            if "aggressive_behavior" in label_scores:
+                label_scores["aggressive_behavior"] = 0.01
+            label_scores["friendly_behavior"] = label_scores.get("friendly_behavior", 0) + 0.15
+
+        if any(word in normalized_text for word in ["спокійний", "лагідний", "дружній", "контактний", "дозволяє гладити", "сидить на руках"]):
+            label_scores["friendly_behavior"] = label_scores.get("friendly_behavior", 0) + 0.12
+
+        appetite_hits = sum(
+            1 for word in [
+                "апетит",
+                "не доїдає",
+                "залишати частину корму",
+                "залишає частину корму",
+                "без особливого інтересу",
+                "відмовляється від їжі"
+            ]
+            if word in normalized_text
+        )
+        if appetite_hits > 0:
+            label_scores["appetite_problem"] = label_scores.get("appetite_problem", 0) + 0.18
+            forced_labels.add("appetite_problem")
+        else:
+            label_scores["appetite_problem"] = min(label_scores.get("appetite_problem", 0), 0.05)
+
+        allergy_hits = sum(
+            1 for word in [
+                "алергі",
+                "чутлив",
+                "почервоніння",
+                "чухання",
+                "реакція",
+                "небажан",
+                "курка",
+                "інгредієнт"
+            ]
+            if word in normalized_text
+        )
+        if allergy_hits >= 2:
+            label_scores["allergy_risk"] = label_scores.get("allergy_risk", 0) + 0.22
+            forced_labels.add("allergy_risk")
+        else:
+            label_scores["allergy_risk"] = min(label_scores.get("allergy_risk", 0), 0.05)
+
+        if any(word in normalized_text for word in ["дітьми", "діти", "дитина", "із дітьми", "з дітьми"]):
+            label_scores["kids_compatibility"] = label_scores.get("kids_compatibility", 0) + 0.12
+            forced_labels.add("kids_compatibility")
+
+        if any(word in normalized_text for word in [
+            "іншими котами",
+            "іншими тваринами",
+            "з іншими котами",
+            "з іншими тваринами"
+        ]):
+            label_scores["animal_compatibility"] = label_scores.get("animal_compatibility", 0) + 0.10
+            forced_labels.add("animal_compatibility")
+
+    elif entity_type == "FOOD":
+        stock_hits = sum(
+            1 for word in [
+                "закінчується",
+                "запас",
+                "замовлення",
+                "залишилося",
+                "залишилось",
+                "не вистачить"
+            ]
+            if word in normalized_text
+        )
+        if stock_hits > 0:
+            label_scores["stock_warning"] = label_scores.get("stock_warning", 0) + 0.18
+            forced_labels.add("stock_warning")
+        else:
+            label_scores["stock_warning"] = min(label_scores.get("stock_warning", 0), 0.05)
+
+        medical_hits = sum(
+            1 for word in ["лікувальний", "спеціальний", "ветеринарний", "дієта"]
+            if word in normalized_text
+        )
+        if medical_hits > 0:
+            label_scores["medical_diet"] = label_scores.get("medical_diet", 0) + 0.16
+            forced_labels.add("medical_diet")
+        else:
+            label_scores["medical_diet"] = min(label_scores.get("medical_diet", 0), 0.05)
+
+        storage_hits = sum(
+            1 for word in [
+                "термін придатності",
+                "зберігати",
+                "зберігання",
+                "вологість",
+                "псується",
+                "упаковки"
+            ]
+            if word in normalized_text
+        )
+        if storage_hits > 0:
+            label_scores["storage_or_expiry"] = label_scores.get("storage_or_expiry", 0) + 0.16
+            forced_labels.add("storage_or_expiry")
+        else:
+            label_scores["storage_or_expiry"] = min(label_scores.get("storage_or_expiry", 0), 0.05)
+
+        food_allergy_hits = sum(
+            1 for word in [
+                "алергі",
+                "алерген",
+                "курка",
+                "інгредієнт",
+                "почервоніння",
+                "чухання",
+                "реакція",
+                "чутлив"
+            ]
+            if word in normalized_text
+        )
+        if food_allergy_hits >= 2:
+            label_scores["allergy_risk"] = label_scores.get("allergy_risk", 0) + 0.18
+            forced_labels.add("allergy_risk")
+        else:
+            label_scores["allergy_risk"] = min(label_scores.get("allergy_risk", 0), 0.05)
+
+        urgent_hits = sum(
+            1 for word in ["терміново", "негайно", "критично", "потребує додаткової уваги"]
+            if word in normalized_text
+        )
+        if urgent_hits > 0:
+            label_scores["urgent_attention"] = label_scores.get("urgent_attention", 0) + 0.20
+            forced_labels.add("urgent_attention")
+        else:
+            label_scores["urgent_attention"] = min(label_scores.get("urgent_attention", 0), 0.05)
+
+    return label_scores, forced_labels
+
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -419,6 +903,8 @@ def shelter_profile():
     edit_food_id = request.args.get("edit_food_id", type=int)
     food_to_edit = None
 
+    nlp_history = []
+
     if forecast_days not in [7, 14, 30]:
         forecast_days = 7
 
@@ -560,13 +1046,34 @@ def shelter_profile():
                     "animals_count": current_animals
                 })
 
+    cur.execute("""
+        SELECT
+            id,
+            entity_type,
+            target_name,
+            note_text,
+            normalized_text,
+            keywords,
+            flags,
+            predicted_labels,
+            confidence_scores,
+            evidence_fragment,
+            model_name,
+            created_at
+        FROM nlp_analysis
+        WHERE shelter_id = %s
+        ORDER BY created_at DESC
+    """, (session["shelter_id"],))
+    nlp_history = cur.fetchall()
+
     cur.close()
     conn.close()
 
     return render_template("shelter.html", section=section, requests_list=requests_list, animals_list=animals_list,
                            shelter=shelter, selected_animal_id=animal_id, food_history=food_history, forecast_rows=forecast_rows, forecast_daily=forecast_daily,
                            forecast_total=forecast_total, forecast_per_animal=forecast_per_animal, current_animals=current_animals, alpha_value=alpha_value,
-                           reserve_percent=reserve_percent, recommended_total=recommended_total, analytics_module=analytics_module, forecast_days=forecast_days, edit_food_id=edit_food_id, food_to_edit=food_to_edit)
+                           reserve_percent=reserve_percent, recommended_total=recommended_total, analytics_module=analytics_module, forecast_days=forecast_days,
+                           edit_food_id=edit_food_id, food_to_edit=food_to_edit, nlp_history=nlp_history)
 
 
 @app.route("/profile/superadmin")
@@ -1088,6 +1595,82 @@ def toggle_animal_active(animal_id):
     conn.close()
 
     return redirect(url_for("shelter_profile", section="animals"))
+
+
+@app.route("/profile/shelter/nlp/analyze", methods=["POST"])
+@admin_required
+def analyze_nlp_note():
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    entity_type = request.form.get("entity_type", "").strip()
+    target_name = request.form.get("target_name", "").strip()
+    note_text = request.form.get("note_text", "").strip()
+
+    if entity_type not in ["FOOD", "ANIMAL"] or not note_text:
+        return redirect(url_for("shelter_profile", section="analytics", module="nlp"))
+
+    analysis = analyze_note_with_liberta(note_text, entity_type)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO nlp_analysis (
+            shelter_id,
+            entity_type,
+            target_name,
+            note_text,
+            normalized_text,
+            keywords,
+            flags,
+            predicted_labels,
+            confidence_scores,
+            evidence_fragment,
+            model_name
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        shelter_id,
+        entity_type,
+        target_name or None,
+        note_text,
+        analysis["normalized_text"],
+        analysis["keywords"],
+        analysis["flags"],
+        analysis["predicted_labels"],
+        analysis["confidence_scores"],
+        analysis["evidence_fragment"],
+        LIBERTA_MODEL_NAME
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="analytics", module="nlp"))
+
+@app.route("/profile/shelter/nlp/<int:analysis_id>/delete", methods=["POST"])
+@admin_required
+def delete_nlp_analysis(analysis_id):
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM nlp_analysis
+        WHERE id = %s AND shelter_id = %s
+    """, (analysis_id, shelter_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="analytics", module="nlp"))
 
 
 if __name__ == "__main__":

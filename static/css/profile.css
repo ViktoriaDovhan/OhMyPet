@@ -723,6 +723,48 @@
     color: #b14963;
 }
 
+.nlp-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.nlp-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.nlp-result-card {
+    background: white;
+    border: 1px solid #eee3f4;
+    border-radius: 22px;
+    padding: 20px;
+}
+
+.nlp-result-card h4 {
+    margin: 0;
+    font-size: 22px;
+    color: #222;
+}
+
+.nlp-result-card p {
+    margin: 10px 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #444;
+}
+
+.nlp-result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
 @media (max-width: 1100px) {
     .profile-wrapper {
         grid-template-columns: 1fr;
@@ -762,6 +804,10 @@
     }
 
     .analytics-mini-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .nlp-form-grid {
         grid-template-columns: 1fr;
     }
 }
