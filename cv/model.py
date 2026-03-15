@@ -3,7 +3,8 @@ from torchvision.models import resnet18, ResNet18_Weights
 
 ANIMAL_TYPE_CLASSES = [
     "Кіт",
-    "Пес"
+    "Пес",
+    "Бобер"
 ]
 
 SIZE_CLASSES = [
@@ -15,6 +16,7 @@ SIZE_CLASSES = [
 COLOR_CLASSES = [
     "Чорне",
     "Біле",
+    "Чорно-Біле",
     "Сіре",
     "Руде",
     "Коричневе",

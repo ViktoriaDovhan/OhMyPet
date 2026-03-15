@@ -388,6 +388,7 @@
     flex: 1;
     white-space: nowrap;
     box-sizing: border-box;
+    margin-top: 10px;
 }
 
 .animal-actions-block {
