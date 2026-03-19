@@ -10,7 +10,7 @@
         Заявки притулку
     </a>
     <a href="{{ url_for('shelter_profile', section='animals') }}" class="profile-menu-link {% if section == 'animals' %}active{% endif %}">
-        Мої тварини
+        Тварини притулку
     </a>
     <a href="{{ url_for('shelter_profile', section='add_animal') }}" class="profile-menu-link {% if section == 'add_animal' %}active{% endif %}">
         Додати тварину
@@ -387,8 +387,8 @@
             <div class="danger-zone">
                     <form method="post"
                           action="{{ url_for('delete_shelter_animal', animal_id=animal_to_edit.id) }}"
-                          onsubmit="return confirm('Точно видалити тварину? Цю дію не можна скасувати.')">
-                        <button type="submit" class="delete-animal-btn">Видалити тварину</button>
+                          onsubmit="return confirm('Точно видалити анкету? Цю дію не можна скасувати.')">
+                        <button type="submit" class="delete-animal-btn">Видалити анкету</button>
                     </form>
                 </div>
         </div>
