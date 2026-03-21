@@ -120,10 +120,107 @@ FOOD_LABEL_KEYS = [
     "general_note"
 ]
 
+DAY_LABELS = {
+    "MON": "Понеділок",
+    "TUE": "Вівторок",
+    "WED": "Середа",
+    "THU": "Четвер",
+    "FRI": "П’ятниця",
+    "SAT": "Субота",
+    "SUN": "Неділя",
+}
+
+DAY_ORDER = {
+    "MON": 1,
+    "TUE": 2,
+    "WED": 3,
+    "THU": 4,
+    "FRI": 5,
+    "SAT": 6,
+    "SUN": 7,
+}
+
+DAY_OPTIONS = [
+    ("MON", "Понеділок"),
+    ("TUE", "Вівторок"),
+    ("WED", "Середа"),
+    ("THU", "Четвер"),
+    ("FRI", "П’ятниця"),
+    ("SAT", "Субота"),
+    ("SUN", "Неділя"),
+]
+
+SHELTER_REQUIRED_FIELDS = [
+    ("name", "назва"),
+    ("city", "місто"),
+    ("address", "адреса"),
+    ("phone", "телефон"),
+    ("email", "email"),
+    ("work_day_from", "день початку роботи"),
+    ("work_day_to", "день завершення роботи"),
+    ("open_time", "час відкриття"),
+    ("close_time", "час закриття"),
+]
+
 _liberta_tokenizer = None
 _liberta_model = None
 _label_embeddings = None
 _label_keys = list(LIBERTA_LABEL_PROTOTYPES.keys())
+
+
+def has_text(value):
+    return value is not None and str(value).strip() != ""
+
+def get_missing_shelter_fields(shelter):
+    if not shelter:
+        return [label for _, label in SHELTER_REQUIRED_FIELDS]
+
+    missing = []
+
+    for key, label in SHELTER_REQUIRED_FIELDS:
+        value = shelter.get(key)
+
+        if value is None:
+            missing.append(label)
+            continue
+
+        if isinstance(value, str) and not value.strip():
+            missing.append(label)
+
+    return missing
+
+def format_time_value(value):
+    if value is None:
+        return ""
+
+    if hasattr(value, "strftime"):
+        return value.strftime("%H:%M")
+
+    return str(value)[:5]
+
+def format_work_schedule(shelter):
+    if not shelter:
+        return ""
+
+    day_from = shelter.get("work_day_from")
+    day_to = shelter.get("work_day_to")
+    open_time = shelter.get("open_time")
+    close_time = shelter.get("close_time")
+
+    if not day_from or not day_to or not open_time or not close_time:
+        return ""
+
+    open_str = format_time_value(open_time)
+    close_str = format_time_value(close_time)
+
+    if day_from == "MON" and day_to == "SUN":
+        days_text = "Щодня"
+    elif day_from == day_to:
+        days_text = DAY_LABELS.get(day_from, day_from)
+    else:
+        days_text = f"{DAY_LABELS.get(day_from, day_from)}–{DAY_LABELS.get(day_to, day_to)}"
+
+    return f"{days_text}, {open_str}–{close_str}"
 
 
 def get_active_label_keys(entity_type):
@@ -537,14 +634,36 @@ def admin_required(view):
     return wrapped
 
 
-def build_age_group(age_months):
-    if age_months is None:
+def build_age_group(age_years):
+    if age_years is None:
         return "unknown"
-    if age_months <= 12:
+
+    if age_years <= 1:
         return "baby"
-    if age_months <= 36:
+
+    if age_years <= 3:
         return "young"
+
     return "adult"
+
+
+def format_age_years(age_years):
+    if age_years is None:
+        return "-"
+
+    if float(age_years).is_integer():
+        age_value = int(age_years)
+    else:
+        age_value = age_years
+
+    if age_value == 1:
+        suffix = "рік"
+    elif isinstance(age_value, int) and age_value % 10 in [2, 3, 4] and age_value % 100 not in [12, 13, 14]:
+        suffix = "роки"
+    else:
+        suffix = "років"
+
+    return f"{age_value} {suffix}"
 
 
 def contains_any(text, keywords):
@@ -556,6 +675,7 @@ def contains_any(text, keywords):
             return True
 
     return False
+
 
 def unique_values(values):
     result = []
@@ -625,7 +745,7 @@ def calculate_match(animal, preferences):
     animal_type = (animal.get("animal_type") or "").strip()
     size = (animal.get("size") or "").strip()
     character = (animal.get("character") or "").strip()
-    age_group = build_age_group(animal.get("age_months"))
+    age_group = build_age_group(animal.get("age_years"))
     description = (animal.get("description") or "").lower()
 
     preferred_type = preferences.get("preferred_type")
@@ -793,7 +913,7 @@ def main():
             a.name,
             a.animal_type,
             a.sex,
-            a.age_months,
+            a.age_years,
             a.size,
             COALESCE(
                 (
@@ -816,7 +936,7 @@ def main():
     cur.close()
     conn.close()
 
-    return render_template("main.html", animals=animals)
+    return render_template("main.html", animals=animals, format_age_years=format_age_years)
 
 
 @app.route('/adopt')
@@ -862,7 +982,7 @@ def adopt():
             a.animal_type,
             a.breed,
             a.sex,
-            a.age_months,
+            a.age_years,
             a.size,
             a.character,
             a.color,
@@ -922,11 +1042,13 @@ def adopt():
         age_conditions = []
 
         if "baby" in selected_ages:
-            age_conditions.append("a.age_months <= 12")
+            age_conditions.append("a.age_years <= 1")
+
         if "young" in selected_ages:
-            age_conditions.append("(a.age_months > 12 AND a.age_months <= 36)")
+            age_conditions.append("(a.age_years > 1 AND a.age_years <= 3)")
+
         if "adult" in selected_ages:
-            age_conditions.append("(a.age_months > 36)")
+            age_conditions.append("(a.age_years > 3)")
 
         if age_conditions:
             query += " AND (" + " OR ".join(age_conditions) + ")"
@@ -986,7 +1108,7 @@ def adopt():
         "urgent": urgent
     }
 
-    return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters, intelligent_mode=intelligent_mode, intelligent_preferences=intelligent_preferences)
+    return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters, intelligent_mode=intelligent_mode, intelligent_preferences=intelligent_preferences, format_age_years=format_age_years)
 
 
 @app.route("/animal/<int:animal_id>")
@@ -1001,7 +1123,7 @@ def animal_details(animal_id):
             a.animal_type,
             a.breed,
             a.sex,
-            a.age_months,
+            a.age_years,
             a.size,
             a.character,
             a.color,
@@ -1039,7 +1161,7 @@ def animal_details(animal_id):
     cur.close()
     conn.close()
 
-    return render_template("animal.html", animal=animal, photos=photos)
+    return render_template("animal.html", animal=animal, photos=photos, format_age_years=format_age_years)
 
 
 @app.route("/animal/<int:animal_id>/request", methods=["POST"])
@@ -1069,25 +1191,97 @@ def create_adoption_request(animal_id):
 @admin_required
 def update_request_status(request_id):
     new_status = request.form.get("status")
-    animal_id = request.form.get("animal_id", type=int)
+    selected_animal_id = request.form.get("animal_id", type=int)
+    shelter_id = session.get("shelter_id")
+
+    if not shelter_id:
+        abort(403)
 
     if new_status not in ["NEW", "IN_REVIEW", "APPROVED", "REJECTED"]:
         abort(400)
 
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
+        SELECT r.id, r.animal_id
+        FROM adoption_requests r
+        JOIN animals a ON a.id = r.animal_id
+        WHERE r.id = %s
+          AND a.shelter_id = %s
+    """, (request_id, shelter_id))
+    request_row = cur.fetchone()
+
+    if not request_row:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    animal_id = request_row["animal_id"]
+
+    cur2 = conn.cursor()
+
+    cur2.execute("""
         UPDATE adoption_requests
         SET status = %s
         WHERE id = %s
     """, (new_status, request_id))
 
+    if new_status == "APPROVED":
+        cur2.execute("""
+            UPDATE animals
+            SET is_adopted = TRUE,
+                is_active = FALSE
+            WHERE id = %s
+              AND shelter_id = %s
+        """, (animal_id, shelter_id))
+
+        cur2.execute("""
+            UPDATE adoption_requests
+            SET status = 'REJECTED'
+            WHERE animal_id = %s
+              AND id <> %s
+              AND status <> 'REJECTED'
+        """, (animal_id, request_id))
+    else:
+        cur.execute("""
+                SELECT 1
+                FROM adoption_requests
+                WHERE animal_id = %s
+                  AND status = 'APPROVED'
+                LIMIT 1
+            """, (animal_id,))
+        approved_exists = cur.fetchone() is not None
+
+        if approved_exists:
+            cur2.execute("""
+                    UPDATE animals
+                    SET is_adopted = TRUE,
+                        is_active = FALSE
+                    WHERE id = %s
+                      AND shelter_id = %s
+                """, (animal_id, shelter_id))
+        else:
+            cur2.execute("""
+                    UPDATE animals
+                    SET is_adopted = FALSE,
+                        is_active = TRUE
+                    WHERE id = %s
+                      AND shelter_id = %s
+                """, (animal_id, shelter_id))
+
     conn.commit()
+    cur2.close()
     cur.close()
     conn.close()
 
-    return redirect(url_for("shelter_profile", section="requests", animal_id=animal_id))
+    return redirect(
+        url_for(
+            "shelter_profile",
+            section="requests",
+            animal_id=selected_animal_id or animal_id
+        )
+    )
 
 
 @app.route("/profile")
@@ -1229,7 +1423,7 @@ def shelter_profile():
             a.animal_type,
             a.breed,
             a.sex,
-            a.age_months,
+            a.age_years,
             a.size,
             a.character,
             a.color,
@@ -1239,6 +1433,17 @@ def shelter_profile():
             a.health_status,
             a.description,
             COALESCE(a.is_active, TRUE) AS is_active,
+            COALESCE(a.is_adopted, FALSE) AS is_adopted,
+            CASE
+                WHEN COALESCE(a.is_adopted, FALSE) = TRUE THEN 'Вдома'
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM adoption_requests r2
+                    WHERE r2.animal_id = a.id
+                      AND r2.status IN ('NEW', 'IN_REVIEW')
+                ) THEN 'Є заявки'
+                ELSE 'В притулку'
+            END AS adoption_status,
             COALESCE(
                 (
                     SELECT ap.photo_url
@@ -1257,12 +1462,25 @@ def shelter_profile():
     animals_list = cur.fetchall()
 
     cur.execute("""
-            SELECT id, name, city, phone, email
-            FROM shelters
-            WHERE id = %s
-        """, (session["shelter_id"],))
+        SELECT
+            id,
+            name,
+            city,
+            address,
+            phone,
+            email,
+            work_day_from,
+            work_day_to,
+            open_time,
+            close_time
+        FROM shelters
+        WHERE id = %s
+    """, (session["shelter_id"],))
 
     shelter = cur.fetchone()
+    missing_shelter_fields = get_missing_shelter_fields(shelter)
+    profile_complete = len(missing_shelter_fields) == 0
+    formatted_work_schedule = format_work_schedule(shelter)
 
     food_history = []
     forecast_rows = []
@@ -1360,7 +1578,68 @@ def shelter_profile():
                            shelter=shelter, selected_animal_id=animal_id, food_history=food_history, forecast_rows=forecast_rows, forecast_daily=forecast_daily,
                            forecast_total=forecast_total, forecast_per_animal=forecast_per_animal, current_animals=current_animals, alpha_value=alpha_value,
                            reserve_percent=reserve_percent, recommended_total=recommended_total, analytics_module=analytics_module, forecast_days=forecast_days,
-                           edit_food_id=edit_food_id, food_to_edit=food_to_edit, nlp_history=nlp_history)
+                           edit_food_id=edit_food_id, food_to_edit=food_to_edit, nlp_history=nlp_history, profile_complete=profile_complete,
+                           missing_shelter_fields=missing_shelter_fields, day_options=DAY_OPTIONS, formatted_work_schedule=formatted_work_schedule, format_age_years=format_age_years)
+
+
+@app.route("/profile/shelter/update", methods=["POST"])
+@admin_required
+def update_shelter_profile():
+    shelter_id = session.get("shelter_id")
+    if not shelter_id:
+        abort(403)
+
+    name = request.form.get("name", "").strip()
+    city = request.form.get("city", "").strip()
+    address = request.form.get("address", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    work_day_from = request.form.get("work_day_from", "").strip()
+    work_day_to = request.form.get("work_day_to", "").strip()
+    open_time = request.form.get("open_time", "").strip()
+    close_time = request.form.get("close_time", "").strip()
+
+    if not all([name, city, address, phone, email, work_day_from, work_day_to, open_time, close_time]):
+        return redirect(url_for("shelter_profile", section="edit_profile", profile_required=1))
+
+    if work_day_from not in DAY_ORDER or work_day_to not in DAY_ORDER:
+        return redirect(url_for("shelter_profile", section="edit_profile", schedule_error=1))
+
+    if DAY_ORDER[work_day_from] > DAY_ORDER[work_day_to]:
+        return redirect(url_for("shelter_profile", section="edit_profile", schedule_error=1))
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE shelters
+        SET name = %s,
+            city = %s,
+            address = %s,
+            phone = %s,
+            email = %s,
+            work_day_from = %s,
+            work_day_to = %s,
+            open_time = %s,
+            close_time = %s
+        WHERE id = %s
+    """, (
+        name,
+        city,
+        address,
+        phone,
+        email,
+        work_day_from,
+        work_day_to,
+        open_time,
+        close_time,
+        shelter_id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("shelter_profile", section="profile"))
 
 
 @app.route("/profile/superadmin")
@@ -1464,11 +1743,40 @@ def add_shelter_animal():
     if not shelter_id:
         abort(403)
 
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            name,
+            city,
+            address,
+            phone,
+            email,
+            work_day_from,
+            work_day_to,
+            open_time,
+            close_time
+        FROM shelters
+        WHERE id = %s
+    """, (shelter_id,))
+    shelter = cur.fetchone()
+
+    missing_shelter_fields = get_missing_shelter_fields(shelter)
+
+    if missing_shelter_fields:
+        cur.close()
+        conn.close()
+        return redirect(url_for("shelter_profile", section="edit_profile", profile_required=1))
+
+    cur.close()
+
     name = request.form.get("name", "").strip()
     animal_type = request.form.get("animal_type", "").strip()
     breed = request.form.get("breed", "").strip()
     sex = request.form.get("sex", "").strip()
-    age_months = request.form.get("age_months", "").strip()
+    age_years = request.form.get("age_years", "").strip()
+    age_years = float(age_years) if age_years else None
     size = request.form.get("size", "").strip()
     color = request.form.get("color", "").strip()
     health_status = request.form.get("health_status", "").strip()
@@ -1486,9 +1794,9 @@ def add_shelter_animal():
         character = character_select
 
     if not name or not animal_type:
+        conn.close()
         return redirect(url_for("shelter_profile", section="add_animal"))
 
-    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
@@ -1498,7 +1806,7 @@ def add_shelter_animal():
             animal_type,
             breed,
             sex,
-            age_months,
+            age_years,
             size,
             character,
             color,
@@ -1510,29 +1818,13 @@ def add_shelter_animal():
             is_active
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id 
-    """, (
-        shelter_id,
-        name,
-        animal_type,
-        breed,
-        sex,
-        age_months,
-        size,
-        character,
-        color,
-        sterilized,
-        urgent,
-        vaccinated,
-        health_status,
-        description,
-        is_active
-    ))
+        RETURNING id
+    """, (shelter_id, name, animal_type, breed, sex, age_years, size, character,
+          color, sterilized, urgent, vaccinated, health_status, description, is_active))
 
     animal_id = cur.fetchone()[0]
 
     photos = request.files.getlist("photos")
-
     is_first_photo = True
 
     for photo in photos:
@@ -1585,7 +1877,8 @@ def edit_shelter_animal(animal_id):
         animal_type = request.form.get("animal_type", "").strip()
         breed = request.form.get("breed", "").strip()
         sex = request.form.get("sex", "").strip()
-        age_months = request.form.get("age_months", type=int)
+        age_years = request.form.get("age_years", "").strip()
+        age_years = float(age_years) if age_years else None
         size = request.form.get("size", "").strip()
         color = request.form.get("color", "").strip()
         health_status = request.form.get("health_status", "").strip()
@@ -1615,7 +1908,7 @@ def edit_shelter_animal(animal_id):
                 animal_type = %s,
                 breed = %s,
                 sex = %s,
-                age_months = %s,
+                age_years = %s,
                 size = %s,
                 character = %s,
                 color = %s,
@@ -1631,7 +1924,7 @@ def edit_shelter_animal(animal_id):
             animal_type,
             breed or None,
             sex or None,
-            age_months,
+            age_years,
             size or None,
             character or None,
             color or None,
@@ -1685,7 +1978,7 @@ def edit_shelter_animal(animal_id):
             a.animal_type,
             a.breed,
             a.sex,
-            a.age_months,
+            a.age_years,
             a.size,
             a.character,
             a.color,
@@ -1746,7 +2039,7 @@ def edit_shelter_animal(animal_id):
     cur.close()
     conn.close()
 
-    return render_template("shelter.html", section="edit_animal", animal_to_edit=animal, animal_photos=animal_photos, animals_list=animals_list, requests_list=requests_list, shelter=shelter, selected_animal_id=None)
+    return render_template("shelter.html", section="edit_animal", animal_to_edit=animal, animal_photos=animal_photos, animals_list=animals_list, requests_list=requests_list, shelter=shelter, selected_animal_id=None, format_age_years=format_age_years)
 
 
 @app.route("/profile/shelter/animal/<int:animal_id>/photo/<int:photo_id>/delete", methods=["POST"])

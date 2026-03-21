@@ -185,7 +185,7 @@
                         {% endif %}
                     </div>
                     <h3>{{ animal.name }}</h3>
-                    <p>Вік: {{ animal.age_months }} міс.</p>
+                    <p>Вік: {{ animal.age_years }} років</p>
                     <p>Стать: {{ animal.sex }}</p>
                     <p>Тип: {{ animal.animal_type }}</p>
                     <p>Розмір: {{ animal.size }}</p>
@@ -201,7 +201,10 @@
                     <a href="{{ url_for('animal_details', animal_id=animal.id) }}" class="details-btn">Детальніше</a>
                 </div>
             {% else %}
-                <p>За вибраними фільтрами тварин не знайдено</p>
+                <div class="empty-results">
+                    <h3>Поки що такого друга не знайшлося</h3>
+                    <p>Спробуйте змінити або скинути фільтри — можливо, ваш ідеальний улюбленець зовсім поруч</p>
+                </div>
             {% endfor %}
         </div>
     </main>

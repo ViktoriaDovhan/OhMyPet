@@ -307,6 +307,38 @@
     box-shadow: 0 0 0 4px rgba(214, 166, 232, 0.15);
 }
 
+.profile-form select,
+.profile-form input[type="time"] {
+    width: 100%;
+    padding: 16px 18px;
+    border: 1px solid #e5d8f6;
+    border-radius: 18px;
+    background: #fff;
+    font-size: 17px;
+    color: #4a4a68;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.profile-form select:focus,
+.profile-form input[type="time"]:focus {
+    border-color: #c89cf4;
+    box-shadow: 0 0 0 3px rgba(200, 156, 244, 0.12);
+}
+
+.schedule-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+}
+
+.schedule-separator {
+    font-size: 24px;
+    font-weight: 700;
+    color: #9b8bb7;
+}
+
 .bottom-margin {
     margin-bottom: 22px;
 }
@@ -343,8 +375,42 @@
     margin-bottom: 16px;
 }
 
+.profile-warning {
+    margin-bottom: 20px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: #fff4f7;
+    border: 1px solid #f2cad7;
+    color: #a04f6c;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
 .animal-status-row {
     margin: 14px 0 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-badge.shelter-status {
+    background: #eef4ff;
+    color: #4b6fb3;
+}
+
+.status-badge.requests-status {
+    background: #fff1e4;
+    color: #b96c1f;
+}
+
+.status-badge.home-status {
+    background: #eee9ff;
+    color: #6a53c7;
 }
 
 .status-badge {

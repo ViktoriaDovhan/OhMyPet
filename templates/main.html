@@ -25,7 +25,7 @@
                 <img src="{{ url_for('static', filename=animal.photo_url) }}" alt="{{ animal.name }}">
 
                 <h3>{{ animal.name }}</h3>
-                <p>Вік: {{ animal.age_months }} міс.</p>
+                <p>Вік: {{ format_age_years(animal.age_years) }} </p>
                 <p>Стать: {{ animal.sex }}</p>
                 <p>Тип: {{ animal.animal_type }}</p>
                 <p>Розмір: {{ animal.size }}</p>
