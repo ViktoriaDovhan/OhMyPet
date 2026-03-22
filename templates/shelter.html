@@ -169,9 +169,15 @@
                             <input type="text" name="breed">
                         </div>
 
+                        {% set sex_options = ['Дівчинка', 'Хлопчик'] %}
                         <div class="form-group">
-                            <label>Стать</label>
-                            <input type="text" name="sex" placeholder="Хлопчик або Дівчинка">
+                            <label for="sex">Стать</label>
+                            <select id="sex" name="sex" required>
+                                <option value="" selected>Оберіть стать</option>
+                                {% for sex_option in sex_options %}
+                                    <option value="{{ sex_option }}">{{ sex_option }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -313,9 +319,19 @@
                         <input type="text" name="breed" value="{{ animal_to_edit.breed or '' }}">
                     </div>
 
+                    {% set sex_options = ['Дівчинка', 'Хлопчик'] %}
+                    {% set current_sex = animal_to_edit.sex or '' %}
+
                     <div class="form-group">
-                        <label>Стать</label>
-                        <input type="text" name="sex" value="{{ animal_to_edit.sex or '' }}">
+                        <label for="edit_sex">Стать</label>
+                        <select id="edit_sex" name="sex" required>
+                            <option value="" {% if not current_sex %}selected{% endif %}>Оберіть стать</option>
+                            {% for sex_option in sex_options %}
+                                <option value="{{ sex_option }}" {% if sex_option == current_sex %}selected{% endif %}>
+                                    {{ sex_option }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
 
                     <div class="form-group">

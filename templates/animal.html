@@ -64,13 +64,18 @@
                     </div>
 
                     <div class="info-row">
+                        <div class="icon-badge ">🩺</div>
+                        <div class="info-text"><strong>Стан здоров’я:</strong> {{ animal.health_status or 'Не вказано' }}</div>
+                    </div>
+
+                    <div class="info-row">
                         <div class="icon-badge ">💊</div>
-                        <div class="info-text"><strong>Стерилізація:</strong> {{ 'Є' if animal.sterilized else 'Немає' }}</div>
+                        <div class="info-text"><strong>Стерилізація:</strong> {{ 'Проведена' if animal.sterilized else 'Немає' }}</div>
                     </div>
 
                     <div class="info-row">
                         <div class="icon-badge ">💉</div>
-                        <div class="info-text"><strong>Вакцинація:</strong> {{ 'Є' if animal.vaccinated else 'Немає' }}</div>
+                        <div class="info-text"><strong>Вакцинація:</strong> {{ 'Виконана' if animal.vaccinated else 'Немає' }}</div>
                     </div>
 
                     <div class="info-row">

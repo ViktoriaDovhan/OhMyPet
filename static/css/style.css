@@ -25,8 +25,8 @@ html, body {
 .header-container {
     width: 100%;
     padding: 0 40px;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
 }
 
@@ -37,9 +37,18 @@ html, body {
 }
 
 .nav {
+    justify-self: center;
     display: flex;
-    gap: 10px;
     align-items: center;
+    justify-content: center;
+    gap: 42px;
+}
+
+.account-area {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .nav a {
@@ -326,14 +335,107 @@ html, body {
     width: 100%;
 }
 
-@media (max-width: 1200px) {
-    .pets .pet-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
+html {
+    scroll-behavior: smooth;
+}
 
-    .main-pet-card img {
-        height: 340px;
-    }
+.account-pill {
+    text-decoration: none;
+    color: #444;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 30px;
+    background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.account-pill:hover {
+    color: #000;
+    transform: translateY(-1px);
+}
+
+.footer-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 18px 0;
+}
+
+.footer .logo-link {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.footer-nav {
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 42px;
+}
+
+.footer-nav a {
+    text-decoration: none;
+    color: #444;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 10px 22px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.footer-nav a:hover {
+    background-color: #f0f2f5;
+    color: #000;
+}
+
+.footer-contacts {
+    grid-column: 1 / 4;
+    justify-self: center;
+    text-align: center;
+    margin-top: 8px;
+}
+
+.footer-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.footer-contacts p {
+    margin: 4px 0;
+    color: #555;
+}
+
+.nav a,
+.footer-nav a {
+    text-decoration: none;
+    color: #444;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 10px 0;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.nav a:hover,
+.footer-nav a:hover {
+    color: #000;
+}
+
+.nav a:hover,
+.footer-nav a:hover {
+    background-color: #f0f2f5;
+    color: #000;
 }
 
 @media (max-width: 900px) {
@@ -362,6 +464,44 @@ html, body {
     .main-pet-card img {
         height: 300px;
     }
+
+    .header-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .account-area {
+        justify-content: center;
+    }
+
+    .footer-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+    }
+
+    .footer .logo-link {
+        grid-column: auto;
+        justify-self: center;
+    }
+
+    .footer-nav {
+        grid-column: auto;
+        justify-self: center;
+        justify-content: center;
+    }
+
+    .footer-contacts {
+        grid-column: auto;
+        justify-self: center;
+        text-align: center;
+    }
 }
 
 @media (max-width: 500px) {
@@ -380,5 +520,15 @@ html, body {
 
     .main-pet-card img {
         height: 260px;
+    }
+
+    .account-pill {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    .footer-nav a {
+        font-size: 14px;
+        padding: 8px 16px;
     }
 }

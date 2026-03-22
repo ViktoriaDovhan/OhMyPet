@@ -1,54 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
     <title>OhMyPet!</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {% set account_href = url_for('profile') if session.get('user_id') else url_for('auth.login') %}
+    {% set account_label = 'Профіль' if session.get('user_id') else 'Увійти' %}
+
     <header class="header">
         <div class="header-container">
-            <a href="#" class="logo-link">
+            <a href="{{ url_for('main') }}" class="logo-link">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
             </a>
 
             <nav class="nav">
-                <a href="{{ url_for('main') }}">Головна</a>
-                <a href="{{ url_for('adopt') }}">Адопція</a>
-                <a href="#">Для притулків</a>
-                <a href="#">Про нас</a>
-                <a href="#">Контакти</a>
-
-                {% if session.get('user_id') %}
-                    <a href="{{ url_for('auth.logout') }}">Вихід</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}">Вхід</a>
-                {% endif %}
+                <a href="{{ url_for('main') }}" class="{% if request.endpoint == 'main' %}active{% endif %}">Головна</a>
+                <a href="{{ url_for('adopt') }}" class="{% if request.endpoint == 'adopt' %}active{% endif %}">Адопція</a>
+                <a href="{{ url_for('main') }}#smart-match">Інтелектуальний підбір</a>
+                <a href="{{ url_for('main') }}#food-forecast">Прогноз корму</a>
             </nav>
 
-            <div class="account">
-                <a href="{{ url_for('profile') }}" class="account-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="account-area">
+                <a href="{{ account_href }}" class="account-pill">
+                    {{ account_label }}
+                </a>
+                <a href="{{ account_href }}" class="account-btn" aria-label="{{ account_label }}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                 </a>
+
+
             </div>
         </div>
     </header>
 
     {% block content %}{% endblock %}
-    <footer class="footer">
-        <nav class="nav">
-            <a href="#" class="logo-link">
+
+    <footer class="footer" id="site-footer">
+        <div class="footer-inner">
+            <a href="{{ url_for('main') }}" class="logo-link">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="OhMyPet">
             </a>
-            <a href="#">Головна</a>
-            <a href="#">Адопція</a>
-            <a href="#">Для притулків</a>
-            <a href="#">Про нас</a>
-            <a href="#">Контакти</a>
-        </nav>
+
+            <nav class="footer-nav">
+                <a href="{{ url_for('main') }}">Головна</a>
+                <a href="{{ url_for('adopt') }}">Адопція</a>
+                <a href="{{ url_for('main') }}#smart-match">Інтелектуальний підбір</a>
+                <a href="{{ url_for('main') }}#food-forecast">Прогноз корму</a>
+            </nav>
+        </div>
     </footer>
 </body>
 </html>

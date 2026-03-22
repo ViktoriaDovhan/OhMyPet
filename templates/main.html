@@ -41,20 +41,19 @@
         <h3>Ще багато хвостиків чекають на дім 🏡</h3>
         <a href="{{ url_for('adopt') }}" class="more-pets-btn">Подивитись усіх</a>
         <div class="info-cards">
-        <div class="info-card ">
-            <h4>Інтелектуальний підбір 🧠</h4>
-            <p>Знаходимо ідеального друга за вашими вподобаннями</p>
-            <a href="{{ url_for('adopt') }}" class="info-card-btn">Перейти</a>
-        </div>
+            <div class="info-card" id="smart-match">
+                <h4>Інтелектуальний підбір</h4>
+                <p>Знаходимо ідеального друга за вашими вподобаннями</p>
+                <a href="{{ url_for('adopt') }}" class="info-card-btn">Перейти</a>
+            </div>
 
-        <div class="info-card ">
-            <h4>Прогноз потреб у кормі 🥣</h4>
-            <p>Розрахунок харчування для здорового життя тваринки</p>
-            <a href="{{ url_for('auth.login') }}" class="info-card-btn">Перейти</a>
+            <div class="info-card" id="food-forecast">
+                <h4>Прогноз потреб у кормі</h4>
+                <p>Розрахунок харчування для здорового життя тваринки</p>
+                <a href="{{ url_for('auth.login') }}" class="info-card-btn">Перейти</a>
+            </div>
         </div>
     </div>
-    </div>
-
 
 </section>
 
