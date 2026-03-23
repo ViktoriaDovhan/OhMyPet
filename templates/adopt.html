@@ -170,6 +170,64 @@
             </button>
         </div>
 
+        <div class="adopt-sort-row">
+            <form method="get" action="{{ url_for('adopt') }}" class="top-sort-form" id="topSortForm">
+                {% for value in filters.types %}
+                    <input type="hidden" name="type" value="{{ value }}">
+                {% endfor %}
+
+                {% for value in filters.sexes %}
+                    <input type="hidden" name="sex" value="{{ value }}">
+                {% endfor %}
+
+                {% for value in filters.ages %}
+                    <input type="hidden" name="age" value="{{ value }}">
+                {% endfor %}
+
+                {% for value in filters.sizes %}
+                    <input type="hidden" name="size" value="{{ value }}">
+                {% endfor %}
+
+                {% for value in filters.characters %}
+                    <input type="hidden" name="character" value="{{ value }}">
+                {% endfor %}
+
+                {% if filters.sterilized %}
+                    <input type="hidden" name="sterilized" value="true">
+                {% endif %}
+
+                {% if filters.urgent %}
+                    <input type="hidden" name="urgent" value="true">
+                {% endif %}
+
+                {% if intelligent_mode %}
+                    <input type="hidden" name="intelligent" value="1">
+                    <input type="hidden" name="home_type" value="{{ intelligent_preferences.home_type }}">
+                    <input type="hidden" name="housing_size" value="{{ intelligent_preferences.housing_size }}">
+                    <input type="hidden" name="daily_time" value="{{ intelligent_preferences.daily_time }}">
+                    <input type="hidden" name="activity_preference" value="{{ intelligent_preferences.activity_preference }}">
+                    <input type="hidden" name="experience" value="{{ intelligent_preferences.experience }}">
+                    <input type="hidden" name="has_children" value="{{ intelligent_preferences.has_children }}">
+                    <input type="hidden" name="has_other_animals" value="{{ intelligent_preferences.has_other_animals }}">
+                    <input type="hidden" name="preferred_type" value="{{ intelligent_preferences.preferred_type }}">
+                    <input type="hidden" name="preferred_age" value="{{ intelligent_preferences.preferred_age }}">
+                {% endif %}
+
+                <label for="topSortSelect" class="top-sort-label">Сортування</label>
+
+                <select name="sort" id="topSortSelect" class="sort-select top-sort-select" onchange="this.form.submit()">
+                    {% if intelligent_mode %}
+                        <option value="match">Найкращий збіг</option>
+                    {% endif %}
+                    <option value="newest">Спочатку новіші</option>
+                    <option value="name_asc">Ім’я: А–Я</option>
+                    <option value="name_desc">Ім’я: Я–А</option>
+                    <option value="age_asc">Спочатку молодші</option>
+                    <option value="age_desc">Спочатку старші</option>
+                </select>
+            </form>
+        </div>
+
         <div class="pet-grid">
             {% for animal in animals %}
                 <div class="pet-card purple">
@@ -230,6 +288,7 @@
 
         <form method="get" action="{{ url_for('adopt') }}" class="smart-form">
             <input type="hidden" name="intelligent" value="1">
+            <input type="hidden" name="sort" value="{{ filters['sort'] }}">
 
             <div class="smart-form-grid">
                 <label>
@@ -360,6 +419,11 @@
             closeModal();
         }
     });
+
+    const topSortSelect = document.getElementById("topSortSelect");
+        if (topSortSelect) {
+            topSortSelect.value = "{{ filters.sort }}";
+        }
 </script>
 
 {% endblock %}

@@ -897,6 +897,49 @@ def calculate_match(animal, preferences):
     return min(100, score), reasons[:4]
 
 
+def sort_animals_for_adopt(animals, sort_by, intelligent_mode=False):
+    animals = list(animals)
+
+    allowed_sorts = {"newest", "name_asc", "name_desc", "age_asc", "age_desc", "match"}
+    if sort_by not in allowed_sorts:
+        sort_by = "match" if intelligent_mode else "newest"
+
+    if intelligent_mode and sort_by == "match":
+        animals.sort(
+            key=lambda item: item.get("match_score", 0),
+            reverse=True
+        )
+    elif sort_by == "name_asc":
+        animals.sort(
+            key=lambda item: (item.get("name") or "").strip().lower()
+        )
+    elif sort_by == "name_desc":
+        animals.sort(
+            key=lambda item: (item.get("name") or "").strip().lower(),
+            reverse=True
+        )
+    elif sort_by == "age_asc":
+        animals.sort(
+            key=lambda item: item.get("age_years") if item.get("age_years") is not None else float("inf")
+        )
+    elif sort_by == "age_desc":
+        animals.sort(
+            key=lambda item: item.get("age_years") if item.get("age_years") is not None else float("-inf"),
+            reverse=True
+        )
+    else:
+        animals.sort(
+            key=lambda item: item.get("id", 0),
+            reverse=True
+        )
+
+    animals.sort(
+        key=lambda item: 0 if item.get("urgent") else 1
+    )
+
+    return animals, sort_by
+
+
 @app.route("/auth")
 def auth_page():
     return redirect(url_for("auth.login"))
@@ -950,6 +993,9 @@ def adopt():
     urgent = request.args.get("urgent") == "true"
 
     intelligent_mode = request.args.get("intelligent") == "1"
+    sort_by = request.args.get("sort", "").strip()
+    if not sort_by:
+        sort_by = "match" if intelligent_mode else "newest"
 
     intelligent_preferences = {
         "home_type": request.args.get("home_type", ""),
@@ -1053,7 +1099,7 @@ def adopt():
         if age_conditions:
             query += " AND (" + " OR ".join(age_conditions) + ")"
 
-    query += " ORDER BY a.id"
+    query += " ORDER BY a.id DESC"
 
     conn = get_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -1081,15 +1127,6 @@ def adopt():
             animal["match_score"] = match_score
             animal["match_reasons"] = match_reasons
 
-        animals = sorted(
-            animals,
-            key=lambda item: (
-                item.get("match_score", 0),
-                1 if item.get("urgent") else 0
-            ),
-            reverse=True
-        )
-
         stronger_matches = [animal for animal in animals if animal.get("match_score", 0) >= 35]
         if stronger_matches:
             animals = stronger_matches
@@ -1098,6 +1135,8 @@ def adopt():
             animal["match_score"] = None
             animal["match_reasons"] = []
 
+    animals, sort_by = sort_animals_for_adopt(animals, sort_by, intelligent_mode)
+
     filters = {
         "types": selected_types,
         "sexes": selected_sexes,
@@ -1105,7 +1144,8 @@ def adopt():
         "sizes": selected_sizes,
         "characters": selected_characters,
         "sterilized": sterilized,
-        "urgent": urgent
+        "urgent": urgent,
+        "sort": sort_by
     }
 
     return render_template("adopt.html", animals=animals, filters=filters, available_characters=available_characters, intelligent_mode=intelligent_mode, intelligent_preferences=intelligent_preferences, format_age_years=format_age_years)
@@ -1393,18 +1433,30 @@ def shelter_profile():
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     query = """
-            SELECT r.id,
-                   r.message,
-                   r.status,
-                   r.created_at,
-                   u.email AS user_email,
-                   a.id AS animal_id,
-                   a.name AS animal_name
-            FROM adoption_requests r
-            JOIN users u ON u.id = r.user_id
-            JOIN animals a ON a.id = r.animal_id
-            WHERE a.shelter_id = %s
-        """
+        SELECT
+            r.id,
+            r.message,
+            r.status,
+            r.created_at,
+            u.email AS user_email,
+            a.id AS animal_id,
+            a.name AS animal_name,
+            COALESCE(
+                (
+                    SELECT ap.photo_url
+                    FROM animal_photos ap
+                    WHERE ap.animal_id = a.id
+                    ORDER BY ap.is_main DESC, ap.id ASC
+                    LIMIT 1
+                ),
+                'images/no-image.png'
+            ) AS photo_url
+        FROM adoption_requests r
+        JOIN users u ON u.id = r.user_id
+        JOIN animals a ON a.id = r.animal_id
+        WHERE a.shelter_id = %s
+    """
+
     params = [session["shelter_id"]]
 
     if animal_id:

@@ -42,10 +42,28 @@
                 <div class="profile-list">
                     {% for item in requests_list %}
                         <div class="profile-list-card">
-                            <h3>{{ item.animal_name }}</h3>
-                            <p><strong>Email користувача:</strong> {{ item.user_email }}</p>
-                            <p><strong>Повідомлення:</strong> {{ item.message }}</p>
-                            <p><strong>Дата:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+                            <div class="request-card">
+                                <div class="request-card-image">
+                                    <img
+                                        src="{{ url_for('static', filename=item.photo_url or 'images/no-image.png') }}"
+                                        alt="{{ item.animal_name }}"
+                                    >
+                                </div>
+
+                                <div class="request-card-content">
+                                    <h3>{{ item.animal_name }}</h3>
+
+                                    <p><strong>Email користувача:</strong> {{ item.user_email }}</p>
+                                    <p><strong>Повідомлення:</strong> {{ item.message }}</p>
+                                    <p><strong>Дата:</strong> {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}</p>
+
+                                    <div class="request-card-actions">
+                                        <a href="{{ url_for('animal_details', animal_id=item.animal_id) }}" class="profile-outline-btn">
+                                            Перейти на анкету 👀
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
 
                             <form method="post" action="{{ url_for('update_request_status', request_id=item.id) }}" class="status-form">
                                 {% if selected_animal_id %}
@@ -153,6 +171,13 @@
                 <form method="post" action="{{ url_for('add_shelter_animal') }}" enctype="multipart/form-data" class="profile-form">
                     <div class="form-grid">
                         <div class="form-group">
+                            <label>Фото</label>
+                            <input type="file" name="photos" id="animal_photos_input" accept=".png,.jpg,.jpeg,.webp" multiple>
+                            <button type="button" id="cv_predict_btn" class="profile-outline-btn">Запропонувати значення</button>
+                            <div id="cv_common_message" hidden></div>
+                        </div>
+
+                        <div class="form-group">
                             <label>Ім’я</label>
                             <input type="text" name="name" required>
                         </div>
@@ -231,13 +256,6 @@
                             <label>Стан здоров’я</label>
                             <input type="text" name="health_status">
                         </div>
-
-                        <div class="form-group">
-                            <label>Фото</label>
-                            <input type="file" name="photos" id="animal_photos_input" accept=".png,.jpg,.jpeg,.webp" multiple>
-                            <button type="button" id="cv_predict_btn" class="profile-outline-btn">Запропонувати значення</button>
-                            <div id="cv_common_message" hidden></div>
-                        </div>
                     </div>
 
                     <div class="form-group bottom-margin">
@@ -304,6 +322,11 @@
 
             <form method="post" action="{{ url_for('edit_shelter_animal', animal_id=animal_to_edit.id) }}" enctype="multipart/form-data" class="profile-form">
                 <div class="form-grid">
+                    <div class="form-group">
+                        <label>Нове фото</label>
+                        <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>
+                    </div>
+
                     <div class="form-group">
                         <label>Ім’я</label>
                         <input type="text" name="name" value="{{ animal_to_edit.name or '' }}" required>
@@ -373,10 +396,6 @@
                         <label>Стан здоров’я</label>
                         <input type="text" name="health_status" value="{{ animal_to_edit.health_status or '' }}">
                     </div>
-
-                    <div class="form-group">
-                        <label>Нове фото</label>
-                        <input type="file" name="photos" accept=".png,.jpg,.jpeg,.webp" multiple>                    </div>
                 </div>
 
                 <div class="form-group bottom-margin">

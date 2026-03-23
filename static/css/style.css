@@ -65,12 +65,19 @@ html, body {
 .nav a:hover {
     background-color: #f0f2f5;
     color: #000;
+    padding: 10px 18px;
+    border-radius: 24px;
+    display: inline-block;
+
 }
 
 .nav a.active {
     background: linear-gradient(90deg, #ccf2f5 0%, #ffdbe8 100%);
     color: #333;
     font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 24px;
+    display: inline-block;
 }
 
 .account-btn {

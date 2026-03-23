@@ -64,6 +64,45 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
+.adopt-sort-row {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin: -6px 0 18px 0;
+}
+
+.top-sort-form {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.top-sort-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin-left: 3px;
+}
+
+.sort-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 18px;
+    border: 2px solid #ead6f5;
+    background: #ffffff;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.sort-select:focus {
+    border-color: #d9b7ff;
+    box-shadow: 0 0 0 4px rgba(217, 183, 255, 0.18);
+}
+
 .filters-head {
     margin-bottom: 20px;
 }

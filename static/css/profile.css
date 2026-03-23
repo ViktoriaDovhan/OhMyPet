@@ -457,6 +457,11 @@
     margin-top: 10px;
 }
 
+.request-card-actions .profile-outline-btn {
+    border: 1px solid #303030;
+    color: #000;
+}
+
 .animal-actions-block {
     display: flex;
     flex-direction: column;
@@ -812,6 +817,59 @@
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 12px;
+}
+
+.request-card {
+    display: flex;
+    gap: 18px;
+    align-items: stretch;
+    padding: 18px;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    margin-bottom: 18px;
+}
+
+.request-card-image {
+    width: 140px;
+    min-width: 140px;
+    height: 140px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+.request-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.request-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.request-card-content h3 {
+    margin: 0 0 6px 0;
+}
+
+.request-card-actions {
+    margin-top: 10px;
+}
+
+@media (max-width: 700px) {
+    .request-card {
+        flex-direction: column;
+    }
+
+    .request-card-image {
+        width: 100%;
+        height: 220px;
+    }
 }
 
 @media (max-width: 1100px) {
