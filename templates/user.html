@@ -72,12 +72,12 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Ім’я</label>
-                        <input type="text" name="first_name" value="{{ user.first_name or '' }}">
+                        <input type="text" name="first_name" value="{{ user.first_name or '' }}" required>
                     </div>
 
                     <div class="form-group">
                         <label>Прізвище</label>
-                        <input type="text" name="last_name" value="{{ user.last_name or '' }}">
+                        <input type="text" name="last_name" value="{{ user.last_name or '' }}" required>
                     </div>
 
                     <div class="form-group">
@@ -87,12 +87,12 @@
 
                     <div class="form-group">
                         <label>Телефон</label>
-                        <input type="text" name="phone" value="{{ user.phone or '' }}">
+                        <input type="text" name="phone" value="{{ user.phone or '' }}" required>
                     </div>
 
                     <div class="form-group">
                         <label>Місто</label>
-                        <input type="text" name="city" value="{{ user.city or '' }}">
+                        <input type="text" name="city" value="{{ user.city or '' }}" required>
                     </div>
                 </div>
 

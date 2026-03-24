@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <h1>Прогноз потреб у кормі</h1>
+        </div>
+
+        <div class="analytics-block">
+            <div class="analytics-block-header">
+                <h3>Прогноз корму</h3>
+
+                <a href="{{ url_for('food_forecast', days=forecast_days, animals_count=selected_animals_count) }}" class="profile-main-btn">
+                    Порахувати прогноз
+                </a>
+            </div>
+
+            <div class="forecast-range-tabs">
+                <a href="{{ url_for('food_forecast', days=7, animals_count=selected_animals_count) }}"
+                   class="forecast-range-btn {% if forecast_days == 7 %}active{% endif %}">
+                    7 днів
+                </a>
+
+                <a href="{{ url_for('food_forecast', days=14, animals_count=selected_animals_count) }}"
+                   class="forecast-range-btn {% if forecast_days == 14 %}active{% endif %}">
+                    14 днів
+                </a>
+
+                <a href="{{ url_for('food_forecast', days=30, animals_count=selected_animals_count) }}"
+                   class="forecast-range-btn {% if forecast_days == 30 %}active{% endif %}">
+                    30 днів
+                </a>
+            </div>
+
+            {% if mode == "admin" %}
+                <p class="analytics-description">
+                    Для прогнозу спочатку пропонується кількість тварин з останнього запису притулку.
+                    Якщо записів ще немає, береться поточна кількість активних тварин.
+                    За потреби ви можете змінити це число вручну.
+                </p>
+            {% else %}
+                <p class="analytics-description">
+                    Для прогнозу спочатку пропонується кількість тварин з вашого останнього запису.
+                    Якщо записів ще немає, береться кількість схвалених заявок.
+                    За потреби ви можете змінити це число вручну.
+                </p>
+            {% endif %}
+
+            <div class="analytics-form-block">
+                {% if mode == "admin" %}
+                    <h4>Кількість тварин для прогнозу</h4>
+                {% else %}
+                    <h4>Кількість тварин для прогнозу</h4>
+                {% endif %}
+
+                <form method="get" action="{{ url_for('food_forecast') }}" class="analytics-form-grid">
+                    <input type="hidden" name="days" value="{{ forecast_days }}">
+
+                    <div class="form-group">
+                        <label>Запропоноване значення</label>
+                        <input type="number" value="{{ suggested_animals_count }}" disabled>
+                    </div>
+
+                    {% if mode == "admin" %}
+                        <div class="form-group">
+                            <label>Активних тварин зараз</label>
+                            <input type="number" value="{{ current_animals }}" disabled>
+                        </div>
+                    {% else %}
+                        <div class="form-group">
+                            <label>Кількість схвалених заявок</label>
+                            <input type="number" value="{{ approved_animals_count }}" disabled>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label>Останній запис</label>
+                        <input type="number" value="{{ latest_record_animals_count if latest_record_animals_count else 0 }}" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Використати для прогнозу</label>
+                        <input type="number" min="1" name="animals_count" value="{{ selected_animals_count }}" required>
+                    </div>
+
+                    <div class="form-group analytics-form-btn-wrap">
+                        <button type="submit" class="profile-main-btn">Перерахувати прогноз</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="analytics-form-block">
+                <h4>Додати запис споживання корму</h4>
+
+                <form method="post" action="{{ url_for('add_food_consumption') }}" class="analytics-form-grid">
+                    <div class="form-group">
+                        <label>Дата</label>
+                        <input type="date" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Кг корму</label>
+                        <input type="number" step="0.01" min="0" name="kg_used" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Кількість тварин</label>
+                        <input type="number" min="1" name="animals_count" value="{{ suggested_animals_count if suggested_animals_count > 0 else 1 }}" required>
+                    </div>
+
+                    <div class="form-group analytics-form-btn-wrap">
+                        <button type="submit" class="profile-main-btn">Додати запис</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if food_to_edit %}
+                <div class="analytics-form-block edit-mode">
+                    <h4>Редагувати запис</h4>
+
+                    <form method="post" action="{{ url_for('update_food_consumption', food_id=food_to_edit.id) }}" class="analytics-form-grid">
+                        <div class="form-group">
+                            <label>Дата</label>
+                            <input type="date" name="date" value="{{ food_to_edit.date.strftime('%Y-%m-%d') if food_to_edit.date else '' }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Кг корму</label>
+                            <input type="number" step="0.01" min="0" name="kg_used" value="{{ food_to_edit.kg_used }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Кількість тварин</label>
+                            <input type="number" min="1" name="animals_count" value="{{ food_to_edit.animals_count }}" required>
+                        </div>
+
+                        <div class="form-group analytics-form-btn-wrap analytics-form-actions">
+                            <button type="submit" class="profile-main-btn">Зберегти зміни</button>
+                            <a href="{{ url_for('food_forecast', days=forecast_days, animals_count=selected_animals_count) }}" class="profile-outline-btn">
+                                Скасувати
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+
+            <div class="analytics-mini-cards">
+                {% if mode == "admin" %}
+                    <div class="analytics-mini-card">
+                        <span class="analytics-mini-label">Записів у базі</span>
+                        <span class="analytics-mini-value">{{ food_history|length if food_history else 0 }}</span>
+                    </div>
+
+                    <div class="analytics-mini-card">
+                        <span class="analytics-mini-label">Активних тварин зараз</span>
+                        <span class="analytics-mini-value">{{ current_animals }}</span>
+                    </div>
+                {% else %}
+                    <div class="analytics-mini-card">
+                        <span class="analytics-mini-label">Схвалених заявок</span>
+                        <span class="analytics-mini-value">{{ approved_animals_count }}</span>
+                    </div>
+
+                    <div class="analytics-mini-card">
+                        <span class="analytics-mini-label">Ваших записів</span>
+                        <span class="analytics-mini-value">{{ food_history|length if food_history else 0 }}</span>
+                    </div>
+                {% endif %}
+
+                <div class="analytics-mini-card">
+                    <span class="analytics-mini-label">Для розрахунку взято</span>
+                    <span class="analytics-mini-value">{{ selected_animals_count }}</span>
+                </div>
+
+                <div class="analytics-mini-card">
+                    <span class="analytics-mini-label">Прогноз на 1 тварину / день</span>
+                    <span class="analytics-mini-value">
+                        {% if forecast_per_animal is not none %}
+                            {{ forecast_per_animal }} кг
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="analytics-mini-card">
+                    <span class="analytics-mini-label">Прогноз на 1 день</span>
+                    <span class="analytics-mini-value">
+                        {% if forecast_daily is not none %}
+                            {{ forecast_daily }} кг
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="analytics-mini-card">
+                    <span class="analytics-mini-label">Прогноз на {{ forecast_days }} днів</span>
+                    <span class="analytics-mini-value">
+                        {% if forecast_total is not none %}
+                            {{ forecast_total }} кг
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+
+                {% if mode == "admin" %}
+                    <div class="analytics-mini-card">
+                        <span class="analytics-mini-label">Коефіцієнт запасу</span>
+                        <span class="analytics-mini-value">+{{ reserve_percent }}%</span>
+                    </div>
+                {% endif %}
+
+                <div class="analytics-mini-card">
+                    <span class="analytics-mini-label">Рекомендований запас на {{ forecast_days }} днів</span>
+                    <span class="analytics-mini-value">
+                        {% if recommended_total is not none %}
+                            {{ recommended_total }} кг
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if forecast_rows %}
+                <div class="analytics-table-wrap">
+                    <h4>Прогноз на {{ forecast_days }} днів від сьогодні</h4>
+
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Прогноз кг</th>
+                                <th>Кількість тварин</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in forecast_rows %}
+                                <tr>
+                                    <td>{{ row.date.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ row.kg_used }} кг</td>
+                                    <td>{{ row.animals_count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            {% if food_history %}
+                <div class="analytics-table-wrap">
+                    <h4>Історія споживання корму</h4>
+
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Кг корму</th>
+                                <th>Кількість тварин</th>
+                                <th>Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in food_history %}
+                                <tr>
+                                    <td>{{ row.date.strftime('%d.%m.%Y') if row.date else '' }}</td>
+                                    <td>{{ row.kg_used }} кг</td>
+                                    <td>{{ row.animals_count }}</td>
+                                    <td>
+                                        <div class="table-action-buttons">
+                                            <a href="{{ url_for('food_forecast', edit_food_id=row.id, days=forecast_days, animals_count=selected_animals_count) }}" class="table-action-btn edit">
+                                                Редагувати
+                                            </a>
+
+                                            <form method="post"
+                                                  action="{{ url_for('delete_food_consumption', food_id=row.id) }}"
+                                                  onsubmit="return confirm('Видалити цей запис?')">
+                                                <button type="submit" class="table-action-btn delete">Видалити</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="empty-text">Поки що немає записів.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

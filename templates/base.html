@@ -19,7 +19,7 @@
                 <a href="{{ url_for('main') }}" class="{% if request.endpoint == 'main' %}active{% endif %}">Головна</a>
                 <a href="{{ url_for('adopt') }}" class="{% if request.endpoint == 'adopt' %}active{% endif %}">Адопція</a>
                 <a href="{{ url_for('main') }}#smart-match">Інтелектуальний підбір</a>
-                <a href="{{ url_for('main') }}#food-forecast">Прогноз корму</a>
+                <a href="{{ url_for('food_forecast') }}" class="{% if request.endpoint == 'food_forecast' %}active{% endif %}">Прогноз корму</a>
             </nav>
 
             <div class="account-area">
@@ -51,7 +51,7 @@
                 <a href="{{ url_for('main') }}">Головна</a>
                 <a href="{{ url_for('adopt') }}">Адопція</a>
                 <a href="{{ url_for('main') }}#smart-match">Інтелектуальний підбір</a>
-                <a href="{{ url_for('main') }}#food-forecast">Прогноз корму</a>
+                <a href="{{ url_for('food_forecast') }}">Прогноз корму</a>
             </nav>
         </div>
     </footer>

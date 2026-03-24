@@ -728,8 +728,11 @@
 }
 
 .analytics-form-btn-wrap {
+    grid-column: 1 / -1;
     display: flex;
-    align-items: end;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 .analytics-form-actions {
