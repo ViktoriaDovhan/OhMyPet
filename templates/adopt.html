@@ -288,6 +288,7 @@
 
         <form method="get" action="{{ url_for('adopt') }}" class="smart-form">
             <input type="hidden" name="intelligent" value="1">
+            <input type="hidden" name="apply_derived" value="1">
             <input type="hidden" name="sort" value="{{ filters['sort'] }}">
 
             <div class="smart-form-grid">
@@ -378,6 +379,7 @@
                     </select>
                 </label>
             </div>
+
 
             <div class="smart-actions">
                 <button type="submit" class="apply-btn">Підібрати тваринку</button>

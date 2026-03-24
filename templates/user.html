@@ -15,8 +15,8 @@
     <a href="{{ url_for('user_profile', section='requests') }}" class="profile-menu-link {% if section == 'requests' %}active{% endif %}">
         Мої заявки
     </a>
-    <a href="{{ url_for('user_profile', section='settings') }}" class="profile-menu-link {% if section == 'settings' %}active{% endif %}">
-        Налаштування
+    <a href="{{ url_for('user_profile', section='shelter_request') }}" class="profile-menu-link {% if section == 'shelter_request' %}active{% endif %}">
+        Створення притулку
     </a>
 {% endblock %}
 
@@ -122,15 +122,102 @@
             {% endif %}
         </div>
 
-    {% elif section == 'settings' %}
+    {% elif section == 'shelter_request' %}
         <div class="profile-card">
             <div class="profile-card-header">
-                <h1>Налаштування</h1>
+                <h1>Заявка на створення притулку</h1>
             </div>
 
-            <div class="settings-box">
-                <p>Тут пізніше можна додати зміну пароля, сповіщення або інші налаштування.</p>
-            </div>
+            {% if shelter_admin_request %}
+                <div class="settings-box" style="margin-bottom: 24px;">
+                    <p><strong>Остання заявка:</strong> {{ shelter_admin_request.shelter_name }}</p>
+                    <p>
+                        <strong>Статус:</strong>
+                        {% if shelter_admin_request.status == 'PENDING' %}
+                            Очікує розгляду
+                        {% elif shelter_admin_request.status == 'APPROVED' %}
+                            Схвалено
+                        {% elif shelter_admin_request.status == 'REJECTED' %}
+                            Відхилено
+                        {% else %}
+                            {{ shelter_admin_request.status }}
+                        {% endif %}
+                    </p>
+                    <p>
+                        <strong>Дата:</strong>
+                        {{ shelter_admin_request.created_at.strftime('%d.%m.%Y %H:%M') if shelter_admin_request.created_at else '' }}
+                    </p>
+                </div>
+            {% endif %}
+
+            {% if not shelter_admin_request or shelter_admin_request.status != 'PENDING' %}
+                <form method="POST"
+                      action="{{ url_for('submit_shelter_admin_request') }}"
+                      class="profile-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="shelter_name">Назва притулку</label>
+                            <input type="text" id="shelter_name" name="shelter_name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="city">Місто</label>
+                            <input type="text" id="city" name="city" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Телефон</label>
+                            <input type="text" id="phone" name="phone" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="address">Адреса</label>
+                            <input type="text" id="address" name="address" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="work_day_from">Працює з</label>
+                            <select id="work_day_from" name="work_day_from" required>
+                                {% for code, label in day_options %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="work_day_to">Працює до</label>
+                            <select id="work_day_to" name="work_day_to" required>
+                                {% for code, label in day_options %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="open_time">Час відкриття</label>
+                            <input type="time" id="open_time" name="open_time" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="close_time">Час закриття</label>
+                            <input type="time" id="close_time" name="close_time" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <button type="submit" class="save-btn">Подати заявку</button>
+                        </div>
+                    </div>
+                </form>
+            {% else %}
+                <div class="settings-box">
+                    <p>У тебе вже є активна заявка, яка очікує розгляду.</p>
+                </div>
+            {% endif %}
         </div>
     {% endif %}
 {% endblock %}

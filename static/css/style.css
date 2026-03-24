@@ -511,6 +511,33 @@ html {
     }
 }
 
+.flash-messages {
+    width: min(1100px, calc(100% - 40px));
+    margin: 20px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.flash-message {
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.flash-message.error {
+    background: #ffe3e3;
+    color: #b42318;
+    border: 1px solid #f5b5b5;
+}
+
+.flash-message.success {
+    background: #e7f8ec;
+    color: #16794b;
+    border: 1px solid #b7e4c7;
+}
+
 @media (max-width: 500px) {
     .pets .pet-grid {
         grid-template-columns: 1fr;

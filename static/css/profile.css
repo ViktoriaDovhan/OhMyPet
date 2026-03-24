@@ -864,6 +864,28 @@
     margin-top: 10px;
 }
 
+.request-actions {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.request-actions form {
+    margin: 0;
+}
+
+.request-actions .action-btn {
+    height: 56px;
+    padding: 0 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
 @media (max-width: 700px) {
     .request-card {
         flex-direction: column;

@@ -4,28 +4,27 @@
 {% block profile_subtitle %}Керування акаунтами та притулками{% endblock %}
 
 {% block profile_menu %}
-    <a href="{{ url_for('superadmin_profile', section='info') }}"
-       class="profile-menu-link {% if section == 'info' %}active{% endif %}">
+    <a href="{{ url_for('superadmin_profile', section='info') }}" class="profile-menu-link {% if section == 'info' %}active{% endif %}">
         Інформація про себе
     </a>
 
-    <a href="{{ url_for('superadmin_profile', section='edit') }}"
-       class="profile-menu-link {% if section == 'edit' %}active{% endif %}">
+    <a href="{{ url_for('superadmin_profile', section='edit') }}" class="profile-menu-link {% if section == 'edit' %}active{% endif %}">
         Редагувати профіль
     </a>
 
-    <a href="{{ url_for('superadmin_profile', section='statistics') }}"
-       class="profile-menu-link {% if section == 'statistics' %}active{% endif %}">
+    <a href="{{ url_for('superadmin_profile', section='statistics') }}" class="profile-menu-link {% if section == 'statistics' %}active{% endif %}">
         Статистика
     </a>
 
-    <a href="{{ url_for('superadmin_profile', section='users') }}"
-       class="profile-menu-link {% if section == 'users' %}active{% endif %}">
+    <a href="{{ url_for('superadmin_profile', section='users') }}" class="profile-menu-link {% if section == 'users' %}active{% endif %}">
         Користувачі
     </a>
 
-    <a href="{{ url_for('superadmin_profile', section='shelters') }}"
-       class="profile-menu-link {% if section == 'shelters' %}active{% endif %}">
+    <a href="{{ url_for('superadmin_profile', section='role_requests') }}" class="profile-menu-link {% if section == 'role_requests' %}active{% endif %}">
+        Заявки на притулок
+    </a>
+
+    <a href="{{ url_for('superadmin_profile', section='shelters') }}" class="profile-menu-link {% if section == 'shelters' %}active{% endif %}">
         Притулки
     </a>
 {% endblock %}
@@ -204,154 +203,249 @@
         <div class="settings-box">
             Не можна змінювати власну роль або власну прив’язку до притулку.
         </div>
-{% endif %}
+    {% endif %}
 
-{% if users_list %}
-    <div class="profile-list">
-        {% for user in users_list %}
-            <div class="profile-list-card">
-                <h3>{{ user.email }}</h3>
+    {% if users_list %}
+        <div class="profile-list">
+            {% for user in users_list %}
+                <div class="profile-list-card">
+                    <h3>{{ user.email }}</h3>
 
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">ID</span>
-                        <span class="info-value">{{ user.id }}</span>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">ID</span>
+                            <span class="info-value">{{ user.id }}</span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-label">Роль</span>
+                            <span class="info-value">{{ user.role }}</span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-label">Притулок</span>
+                            <span class="info-value">{{ user.shelter_name or 'Не прив’язано' }}</span>
+                        </div>
                     </div>
 
-                    <div class="info-item">
-                        <span class="info-label">Роль</span>
-                        <span class="info-value">{{ user.role }}</span>
-                    </div>
+                    <form method="POST"
+                          action="{{ url_for('superadmin_update_user_role', user_id=user.id) }}"
+                          class="profile-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="role_{{ user.id }}">Роль</label>
+                                <select id="role_{{ user.id }}"
+                                        name="role"
+                                        onchange="toggleShelterSelect('{{ user.id }}')">
+                                    <option value="USER" {% if user.role == 'USER' %}selected{% endif %}>USER</option>
+                                    <option value="ADMIN" {% if user.role == 'ADMIN' %}selected{% endif %}>ADMIN</option>
+                                    <option value="SUPERADMIN" {% if user.role == 'SUPERADMIN' %}selected{% endif %}>SUPERADMIN</option>
+                                </select>
+                            </div>
 
-                    <div class="info-item">
-                        <span class="info-label">Притулок</span>
-                        <span class="info-value">{{ user.shelter_name or 'Не прив’язано' }}</span>
-                    </div>
+                            <div class="form-group">
+                                <label for="shelter_{{ user.id }}">Притулок</label>
+                                <select id="shelter_{{ user.id }}"
+                                        name="shelter_id"
+                                        {% if user.role != 'ADMIN' %}disabled{% endif %}>
+                                    <option value="">Без прив’язки</option>
+                                    {% for shelter in shelters_for_select %}
+                                        <option value="{{ shelter.id }}"
+                                            {% if user.shelter_id == shelter.id %}selected{% endif %}>
+                                            {{ shelter.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+
+                                <p id="hint_{{ user.id }}" style="margin-top: 8px; color: #666; font-size: 14px;">
+                                    {% if user.role != 'ADMIN' %}
+                                        Притулок можна прив’язати тільки після зміни ролі на ADMIN.
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <button type="submit" class="save-btn">Зберегти зміни</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Користувачів поки немає.</p>
+    {% endif %}
 
-                <form method="POST"
-                      action="{{ url_for('superadmin_update_user_role', user_id=user.id) }}"
-                      class="profile-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="role_{{ user.id }}">Роль</label>
-                            <select id="role_{{ user.id }}"
-                                    name="role"
-                                    onchange="toggleShelterSelect('{{ user.id }}')">
-                                <option value="USER" {% if user.role == 'USER' %}selected{% endif %}>USER</option>
-                                <option value="ADMIN" {% if user.role == 'ADMIN' %}selected{% endif %}>ADMIN</option>
-                                <option value="SUPERADMIN" {% if user.role == 'SUPERADMIN' %}selected{% endif %}>SUPERADMIN</option>
-                            </select>
+{% elif section == 'role_requests' %}
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <h1>Заявки на створення притулку</h1>
+        </div>
+
+        {% if admin_requests_list %}
+            <div class="profile-list">
+                {% for item in admin_requests_list %}
+                    <div class="profile-list-card">
+                        <h3>{{ item.shelter_name }}</h3>
+
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Користувач</span>
+                                <span class="info-value">{{ item.first_name or '' }} {{ item.last_name or '' }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Email користувача</span>
+                                <span class="info-value">{{ item.user_email }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Місто</span>
+                                <span class="info-value">{{ item.city }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Адреса</span>
+                                <span class="info-value">{{ item.address }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Телефон</span>
+                                <span class="info-value">{{ item.phone }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Email притулку</span>
+                                <span class="info-value">{{ item.email }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Графік</span>
+                                <span class="info-value">
+                                    {{ day_labels[item.work_day_from] }} – {{ day_labels[item.work_day_to] }},
+                                    {{ format_time_value(item.open_time) }} – {{ format_time_value(item.close_time) }}
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Статус</span>
+                                <span class="info-value">
+                                    {% if item.status == 'PENDING' %}
+                                        Очікує розгляду
+                                    {% elif item.status == 'APPROVED' %}
+                                        Схвалено
+                                    {% elif item.status == 'REJECTED' %}
+                                        Відхилено
+                                    {% else %}
+                                        {{ item.status }}
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Дата</span>
+                                <span class="info-value">
+                                    {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '' }}
+                                </span>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="shelter_{{ user.id }}">Притулок</label>
-                            <select id="shelter_{{ user.id }}"
-                                    name="shelter_id"
-                                    {% if user.role != 'ADMIN' %}disabled{% endif %}>
-                                <option value="">Без прив’язки</option>
-                                {% for shelter in shelters_for_select %}
-                                    <option value="{{ shelter.id }}"
-                                        {% if user.shelter_id == shelter.id %}selected{% endif %}>
-                                        {{ shelter.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                        {% if item.status == 'PENDING' %}
+                            <div class="request-actions">
+                                <form method="POST" action="{{ url_for('approve_shelter_admin_request', request_id=item.id) }}">
+                                    <button type="submit" class="save-btn action-btn">Схвалити</button>
+                                </form>
 
-                            <p id="hint_{{ user.id }}" style="margin-top: 8px; color: #666; font-size: 14px;">
-                                {% if user.role != 'ADMIN' %}
-                                    Притулок можна прив’язати тільки після зміни ролі на ADMIN.
-                                {% endif %}
-                            </p>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <button type="submit" class="save-btn">Зберегти зміни</button>
-                        </div>
+                                <form method="POST" action="{{ url_for('reject_shelter_admin_request', request_id=item.id) }}">
+                                    <button type="submit" class="profile-outline-btn action-btn">Відхилити</button>
+                                </form>
+                            </div>
+                        {% endif %}
                     </div>
-                </form>
+                {% endfor %}
             </div>
-        {% endfor %}
+        {% else %}
+            <div class="settings-box">
+                <p>Заявок поки немає.</p>
+            </div>
+        {% endif %}
     </div>
-{% else %}
-    <p>Користувачів поки немає.</p>
-{% endif %}
 
 {% elif section == 'shelters' %}
-<h1>Притулки</h1>
+    <h1>Притулки</h1>
 
-{% if schedule_error %}
-    <div class="settings-box">
-        Перевір графік роботи: усі поля мають бути заповнені, а день початку не може бути після дня завершення.
-    </div>
-{% endif %}
-
-<div class="settings-box" style="margin-bottom: 24px;">
-    <h3>Створити новий притулок</h3>
-
-    <form method="POST"
-          action="{{ url_for('superadmin_create_shelter') }}"
-          class="profile-form">
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="name">Назва притулку</label>
-                <input type="text" id="name" name="name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="city">Місто</label>
-                <input type="text" id="city" name="city" required>
-            </div>
-
-            <div class="form-group">
-                <label for="phone">Телефон</label>
-                <input type="text" id="phone" name="phone" required>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-            <div class="form-group full-width">
-                <label for="address">Адреса</label>
-                <input type="text" id="address" name="address" required>
-            </div>
-
-            <div class="form-group">
-                <label for="work_day_from">Працює з</label>
-                <select id="work_day_from" name="work_day_from" required>
-                    {% for code, label in day_options %}
-                        <option value="{{ code }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="work_day_to">Працює до</label>
-                <select id="work_day_to" name="work_day_to" required>
-                    {% for code, label in day_options %}
-                        <option value="{{ code }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="open_time">Час відкриття</label>
-                <input type="time" id="open_time" name="open_time" required>
-            </div>
-
-            <div class="form-group">
-                <label for="close_time">Час закриття</label>
-                <input type="time" id="close_time" name="close_time" required>
-            </div>
-
-            <div class="form-group full-width">
-                <button type="submit" class="save-btn">Створити притулок</button>
-            </div>
+    {% if schedule_error %}
+        <div class="settings-box">
+            Перевір графік роботи: усі поля мають бути заповнені, а день початку не може бути після дня завершення.
         </div>
-    </form>
-</div>
+    {% endif %}
+
+    <div class="settings-box" style="margin-bottom: 24px;">
+        <h3>Створити новий притулок</h3>
+
+        <form method="POST"
+              action="{{ url_for('superadmin_create_shelter') }}"
+              class="profile-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="name">Назва притулку</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">Місто</label>
+                    <input type="text" id="city" name="city" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Телефон</label>
+                    <input type="text" id="phone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="address">Адреса</label>
+                    <input type="text" id="address" name="address" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="work_day_from">Працює з</label>
+                    <select id="work_day_from" name="work_day_from" required>
+                        {% for code, label in day_options %}
+                            <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="work_day_to">Працює до</label>
+                    <select id="work_day_to" name="work_day_to" required>
+                        {% for code, label in day_options %}
+                            <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="open_time">Час відкриття</label>
+                    <input type="time" id="open_time" name="open_time" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="close_time">Час закриття</label>
+                    <input type="time" id="close_time" name="close_time" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="save-btn">Створити притулок</button>
+                </div>
+            </div>
+        </form>
+    </div>
 
 {% if shelters_list %}
     <div class="profile-list">
@@ -483,28 +577,26 @@
 {% else %}
     <p>Притулків поки немає.</p>
 {% endif %}
-
 {% endif %}
-
 <script>
-function toggleShelterSelect(userId) {
-    const roleSelect = document.getElementById("role_" + userId);
-    const shelterSelect = document.getElementById("shelter_" + userId);
-    const hint = document.getElementById("hint_" + userId);
+    function toggleShelterSelect(userId) {
+        const roleSelect = document.getElementById("role_" + userId);
+        const shelterSelect = document.getElementById("shelter_" + userId);
+        const hint = document.getElementById("hint_" + userId);
 
-    if (!roleSelect || !shelterSelect || !hint) {
-        return;
-    }
+        if (!roleSelect || !shelterSelect || !hint) {
+            return;
+        }
 
-    if (roleSelect.value === "ADMIN") {
-        shelterSelect.disabled = false;
-        hint.textContent = "";
-    } else {
-        shelterSelect.value = "";
-        shelterSelect.disabled = true;
-        hint.textContent = "Притулок можна прив’язати тільки після зміни ролі на ADMIN.";
+        if (roleSelect.value === "ADMIN") {
+            shelterSelect.disabled = false;
+            hint.textContent = "";
+        } else {
+            shelterSelect.value = "";
+            shelterSelect.disabled = true;
+            hint.textContent = "Притулок можна прив’язати тільки після зміни ролі на ADMIN.";
+        }
     }
-}
 </script>
 
 {% endblock %}

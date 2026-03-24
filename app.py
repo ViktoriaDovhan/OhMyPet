@@ -702,13 +702,14 @@ def derive_filters_from_preferences(preferences):
     derived_types = []
     derived_sizes = []
     derived_ages = []
+    derived_characters = []
 
     preferred_type = preferences.get("preferred_type")
+    preferred_age = preferences.get("preferred_age")
+    preferred_character = preferences.get("activity_preference")
+
     home_type = preferences.get("home_type")
     housing_size = preferences.get("housing_size")
-    daily_time = preferences.get("daily_time")
-    experience = preferences.get("experience")
-    preferred_age = preferences.get("preferred_age")
 
     if preferred_type in ["Кіт", "Пес"]:
         derived_types.append(preferred_type)
@@ -716,32 +717,34 @@ def derive_filters_from_preferences(preferences):
     if preferred_age in ["baby", "young", "adult"]:
         derived_ages.append(preferred_age)
 
+    if preferred_character == "calm":
+        derived_characters.extend(["Спокійний", "Лагідний"])
+    elif preferred_character == "active":
+        derived_characters.append("Активний")
+    elif preferred_character == "friendly":
+        derived_characters.extend(["Дружній", "Лагідний"])
+
     if home_type == "apartment":
         if housing_size == "small":
             derived_sizes.extend(["Маленький"])
         elif housing_size == "medium":
             derived_sizes.extend(["Маленький", "Середній"])
-        else:
-            derived_sizes.extend(["Середній", "Маленький"])
+        elif housing_size == "large":
+            derived_sizes.extend(["Середній", "Великий"])
 
-    if home_type == "house":
+    elif home_type == "house":
         if housing_size == "small":
             derived_sizes.extend(["Середній"])
         elif housing_size == "medium":
             derived_sizes.extend(["Середній", "Великий"])
-        else:
+        elif housing_size == "large":
             derived_sizes.extend(["Великий", "Середній"])
-
-    if daily_time == "low" and preferred_age not in ["baby", "young", "adult"]:
-        derived_ages.append("adult")
-
-    if experience == "none" and preferred_age not in ["baby", "young", "adult"]:
-        derived_ages.append("adult")
 
     return {
         "types": unique_values(derived_types),
         "sizes": unique_values(derived_sizes),
-        "ages": unique_values(derived_ages)
+        "ages": unique_values(derived_ages),
+        "characters": unique_values(derived_characters)
     }
 
 
@@ -1266,6 +1269,8 @@ def adopt():
     urgent = request.args.get("urgent") == "true"
 
     intelligent_mode = request.args.get("intelligent") == "1"
+    apply_derived = request.args.get("apply_derived") == "1"
+
     sort_by = request.args.get("sort", "").strip()
     if not sort_by:
         sort_by = "match" if intelligent_mode else "newest"
@@ -1279,10 +1284,11 @@ def adopt():
         "has_children": request.args.get("has_children", ""),
         "has_other_animals": request.args.get("has_other_animals", ""),
         "preferred_type": request.args.get("preferred_type", ""),
-        "preferred_age": request.args.get("preferred_age", "")
+        "preferred_age": request.args.get("preferred_age", ""),
+        "preferred_character": request.args.get("preferred_character", "")
     }
 
-    if intelligent_mode:
+    if intelligent_mode and apply_derived:
         derived_filters = derive_filters_from_preferences(intelligent_preferences)
 
         if not selected_types:
@@ -1293,6 +1299,9 @@ def adopt():
 
         if not selected_ages:
             selected_ages = derived_filters["ages"]
+
+        if not selected_characters:
+            selected_characters = derived_filters["characters"]
 
     query = """
         SELECT
@@ -1481,24 +1490,42 @@ def animal_details(animal_id):
 @login_required
 def create_adoption_request(animal_id):
     message = request.form.get("message", "").strip()
+    user_id = session["user_id"]
 
     if not message:
+        flash("Напишіть повідомлення до заявки.", "error")
         return redirect(url_for("animal_details", animal_id=animal_id))
 
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
+        SELECT id
+        FROM adoption_requests
+        WHERE user_id = %s AND animal_id = %s
+        LIMIT 1
+    """, (user_id, animal_id))
+    existing_request = cur.fetchone()
+
+    if existing_request:
+        cur.close()
+        conn.close()
+        flash("Ви вже подавали заявку на цю тварину.", "error")
+        return redirect(url_for("animal_details", animal_id=animal_id))
+
+    cur2 = conn.cursor()
+    cur2.execute("""
         INSERT INTO adoption_requests (user_id, animal_id, message, status)
         VALUES (%s, %s, %s, 'NEW')
-    """, (session["user_id"], animal_id, message))
+    """, (user_id, animal_id, message))
 
     conn.commit()
+    cur2.close()
     cur.close()
     conn.close()
 
+    flash("Заявку успішно подано.", "success")
     return redirect(url_for("user_profile", section="requests"))
-
 
 @app.route("/shelter/requests/<int:request_id>/status", methods=["POST"])
 @admin_required
@@ -1621,34 +1648,54 @@ def user_profile():
         abort(403)
 
     section = request.args.get("section", "info")
+    if section not in ["info", "edit", "requests", "shelter_request", "settings"]:
+        section = "info"
 
     conn = get_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
-           SELECT id, first_name, last_name, email, phone, city, role
-           FROM users
-           WHERE id = %s
-       """, (session["user_id"],))
+        SELECT id, first_name, last_name, email, phone, city, role
+        FROM users
+        WHERE id = %s
+    """, (session["user_id"],))
     user = cur.fetchone()
 
     cur.execute("""
-           SELECT r.id,
-                  r.message,
-                  r.status,
-                  r.created_at,
-                  a.name AS animal_name
-           FROM adoption_requests r
-           JOIN animals a ON a.id = r.animal_id
-           WHERE r.user_id = %s
-           ORDER BY r.created_at DESC
-       """, (session["user_id"],))
+        SELECT
+            r.id,
+            r.message,
+            r.status,
+            r.created_at,
+            a.name AS animal_name
+        FROM adoption_requests r
+        JOIN animals a ON a.id = r.animal_id
+        WHERE r.user_id = %s
+        ORDER BY r.created_at DESC
+    """, (session["user_id"],))
     requests_list = cur.fetchall()
+
+    cur.execute("""
+        SELECT *
+        FROM shelter_admin_requests
+        WHERE user_id = %s
+        ORDER BY created_at DESC
+        LIMIT 1
+    """, (session["user_id"],))
+    shelter_admin_request = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    return render_template("user.html", section=section, user=user, requests_list=requests_list)
+    return render_template(
+        "user.html",
+        section=section,
+        user=user,
+        requests_list=requests_list,
+        shelter_admin_request=shelter_admin_request,
+        day_options=DAY_OPTIONS,
+        format_time_value=format_time_value
+    )
 
 
 @app.route("/profile/user/update", methods=["POST"])
@@ -1685,6 +1732,204 @@ def update_user_profile():
     conn.close()
 
     return redirect(url_for("user_profile", section="info"))
+
+
+@app.route("/profile/user/shelter-request", methods=["POST"])
+@login_required
+def submit_shelter_admin_request():
+    if session.get("role") != "USER":
+        abort(403)
+
+    shelter_name = request.form.get("shelter_name", "").strip()
+    city = request.form.get("city", "").strip()
+    address = request.form.get("address", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    work_day_from = request.form.get("work_day_from", "").strip()
+    work_day_to = request.form.get("work_day_to", "").strip()
+    open_time = request.form.get("open_time", "").strip()
+    close_time = request.form.get("close_time", "").strip()
+
+    if not all([
+        shelter_name, city, address, phone, email,
+        work_day_from, work_day_to, open_time, close_time
+    ]):
+        flash("Заповни всі поля заявки.")
+        return redirect(url_for("user_profile", section="shelter_request"))
+
+    if work_day_from not in DAY_ORDER or work_day_to not in DAY_ORDER:
+        flash("Некоректно вказані дні роботи.")
+        return redirect(url_for("user_profile", section="shelter_request"))
+
+    if DAY_ORDER[work_day_from] > DAY_ORDER[work_day_to]:
+        flash("День початку роботи не може бути пізніше за день завершення.")
+        return redirect(url_for("user_profile", section="shelter_request"))
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id
+            FROM shelter_admin_requests
+            WHERE user_id = %s AND status = 'PENDING'
+            LIMIT 1
+        """, (session["user_id"],))
+        existing_request = cur.fetchone()
+
+        if existing_request:
+            flash("У тебе вже є активна заявка, яка очікує розгляду.")
+            return redirect(url_for("user_profile", section="shelter_request"))
+
+        cur.execute("""
+            INSERT INTO shelter_admin_requests (
+                user_id,
+                shelter_name,
+                city,
+                address,
+                phone,
+                email,
+                work_day_from,
+                work_day_to,
+                open_time,
+                close_time
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            session["user_id"],
+            shelter_name,
+            city,
+            address,
+            phone,
+            email,
+            work_day_from,
+            work_day_to,
+            open_time,
+            close_time
+        ))
+
+        conn.commit()
+        flash("Заявку на створення притулку подано.")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("user_profile", section="shelter_request"))
+
+
+@app.route("/profile/superadmin/requests/<int:request_id>/approve", methods=["POST"])
+@superadmin_required
+def approve_shelter_admin_request(request_id):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT *
+            FROM shelter_admin_requests
+            WHERE id = %s
+            FOR UPDATE
+        """, (request_id,))
+        request_row = cur.fetchone()
+
+        if not request_row:
+            flash("Заявку не знайдено.")
+            return redirect(url_for("superadmin_profile", section="role_requests"))
+
+        if request_row["status"] != "PENDING":
+            flash("Ця заявка вже оброблена.")
+            return redirect(url_for("superadmin_profile", section="role_requests"))
+
+        cur.execute("""
+            INSERT INTO shelters (
+                name,
+                city,
+                phone,
+                email,
+                address,
+                work_day_from,
+                work_day_to,
+                open_time,
+                close_time
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            request_row["shelter_name"],
+            request_row["city"],
+            request_row["phone"],
+            request_row["email"],
+            request_row["address"],
+            request_row["work_day_from"],
+            request_row["work_day_to"],
+            request_row["open_time"],
+            request_row["close_time"]
+        ))
+        new_shelter = cur.fetchone()
+
+        cur.execute("""
+            UPDATE users
+            SET role = 'ADMIN',
+                shelter_id = %s
+            WHERE id = %s
+        """, (new_shelter["id"], request_row["user_id"]))
+
+        cur.execute("""
+            UPDATE shelter_admin_requests
+            SET status = 'APPROVED',
+                approved = TRUE,
+                reviewed_by = %s,
+                reviewed_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (session["user_id"], request_id))
+
+        conn.commit()
+        flash("Заявку схвалено. Притулок створено, роль змінено на ADMIN.")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("superadmin_profile", section="role_requests"))
+
+
+@app.route("/profile/superadmin/requests/<int:request_id>/reject", methods=["POST"])
+@superadmin_required
+def reject_shelter_admin_request(request_id):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, status
+            FROM shelter_admin_requests
+            WHERE id = %s
+        """, (request_id,))
+        request_row = cur.fetchone()
+
+        if not request_row:
+            flash("Заявку не знайдено.")
+            return redirect(url_for("superadmin_profile", section="role_requests"))
+
+        if request_row["status"] != "PENDING":
+            flash("Ця заявка вже оброблена.")
+            return redirect(url_for("superadmin_profile", section="role_requests"))
+
+        cur.execute("""
+            UPDATE shelter_admin_requests
+            SET status = 'REJECTED',
+                approved = FALSE,
+                reviewed_by = %s,
+                reviewed_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (session["user_id"], request_id))
+
+        conn.commit()
+        flash("Заявку відхилено.")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("superadmin_profile", section="role_requests"))
 
 
 @app.route("/profile/shelter")
@@ -1892,154 +2137,6 @@ def update_shelter_profile():
     return redirect(url_for("shelter_profile", section="profile"))
 
 
-@app.route("/shelter-request", methods=["POST"])
-@login_required
-def submit_shelter_request():
-    if session.get("role") != "USER":
-        flash("Подати таку заявку може тільки звичайний користувач.", "error")
-        return redirect(url_for("profile"))
-
-    shelter_name = request.form.get("shelter_name", "").strip()
-    city = request.form.get("city", "").strip()
-    address = request.form.get("address", "").strip()
-    phone = request.form.get("phone", "").strip()
-    email = request.form.get("email", "").strip()
-    work_schedule = request.form.get("work_schedule", "").strip()
-
-    if not all([shelter_name, city, address, phone, email, work_schedule]):
-        flash("Заповни всі поля для створення притулку.", "error")
-        return redirect(url_for("profile"))
-
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    try:
-        cur.execute("""
-            SELECT id
-            FROM shelter_requests
-            WHERE user_id = %s AND status = 'PENDING'
-            LIMIT 1
-        """, (session["user_id"],))
-        existing_request = cur.fetchone()
-
-        if existing_request:
-            flash("У тебе вже є активна заявка, яка очікує розгляду.", "error")
-            return redirect(url_for("profile"))
-
-        cur.execute("""
-            INSERT INTO shelter_requests (
-                user_id,
-                requested_role,
-                shelter_name,
-                city,
-                address,
-                phone,
-                email,
-                work_schedule
-            )
-            VALUES (%s, 'ADMIN', %s, %s, %s, %s, %s, %s)
-        """, (
-            session["user_id"],
-            shelter_name,
-            city,
-            address,
-            phone,
-            email,
-            work_schedule
-        ))
-
-        conn.commit()
-        flash("Заявку на створення притулку подано.", "success")
-    except Exception:
-        conn.rollback()
-        flash("Не вдалося подати заявку.", "error")
-    finally:
-        cur.close()
-        conn.close()
-
-    return redirect(url_for("profile"))
-
-
-@app.route("/super-admin/shelter-request/<int:request_id>/approve", methods=["POST"])
-@login_required
-@superadmin_required
-def approve_shelter_request(request_id):
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    try:
-        cur.execute("""
-            SELECT *
-            FROM shelter_requests
-            WHERE id = %s
-            FOR UPDATE
-        """, (request_id,))
-        shelter_request = cur.fetchone()
-
-        if not shelter_request:
-            flash("Заявку не знайдено.", "error")
-            return redirect(url_for("profile"))
-
-        if shelter_request["status"] != "PENDING":
-            flash("Ця заявка вже оброблена.", "error")
-            return redirect(url_for("profile"))
-
-        cur.execute("""
-            INSERT INTO shelters (
-                name,
-                city,
-                address,
-                phone,
-                email,
-                work_schedule,
-                admin_user_id
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, (
-            shelter_request["shelter_name"],
-            shelter_request["city"],
-            shelter_request["address"],
-            shelter_request["phone"],
-            shelter_request["email"],
-            shelter_request["work_schedule"],
-            shelter_request["user_id"]
-        ))
-        new_shelter = cur.fetchone()
-
-        cur.execute("""
-            UPDATE users
-            SET role = 'ADMIN'
-            WHERE id = %s
-        """, (shelter_request["user_id"],))
-
-        cur.execute("""
-            UPDATE shelter_requests
-            SET
-                status = 'APPROVED',
-                is_approved = TRUE,
-                approved_shelter_id = %s,
-                reviewed_by = %s,
-                reviewed_at = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (
-            new_shelter["id"],
-            session["user_id"],
-            request_id
-        ))
-
-        conn.commit()
-        flash("Заявку схвалено. Притулок створено, роль змінено на ADMIN.", "success")
-    except Exception:
-        conn.rollback()
-        flash("Не вдалося схвалити заявку.", "error")
-    finally:
-        cur.close()
-        conn.close()
-
-    return redirect(url_for("profile"))
-
-
 @app.route("/profile/superadmin")
 @superadmin_required
 def superadmin_profile():
@@ -2047,7 +2144,7 @@ def superadmin_profile():
     self_edit_error = request.args.get("self_edit_error", type=int)
     schedule_error = request.args.get("schedule_error", type=int)
 
-    if section not in ["info", "edit", "statistics", "users", "shelters"]:
+    if section not in ["info", "edit", "statistics", "users", "role_requests", "shelters"]:
         section = "info"
 
     conn = get_connection()
@@ -2056,6 +2153,7 @@ def superadmin_profile():
     users_list = []
     shelters_list = []
     shelters_for_select = []
+    admin_requests_list = []
     stats = {}
 
     cur.execute("""
@@ -2109,6 +2207,21 @@ def superadmin_profile():
         """, (session["user_id"],))
         users_list = cur.fetchall()
 
+    elif section == "role_requests":
+        cur.execute("""
+            SELECT
+                r.*,
+                u.first_name,
+                u.last_name,
+                u.email AS user_email
+            FROM shelter_admin_requests r
+            JOIN users u ON u.id = r.user_id
+            ORDER BY
+                CASE WHEN r.status = 'PENDING' THEN 0 ELSE 1 END,
+                r.created_at DESC
+        """)
+        admin_requests_list = cur.fetchall()
+
     elif section == "shelters":
         cur.execute("""
             SELECT
@@ -2145,8 +2258,10 @@ def superadmin_profile():
         users_list=users_list,
         shelters_list=shelters_list,
         shelters_for_select=shelters_for_select,
+        admin_requests_list=admin_requests_list,
         stats=stats,
         day_options=DAY_OPTIONS,
+        day_labels=DAY_LABELS,
         format_time_value=format_time_value,
         self_edit_error=self_edit_error,
         schedule_error=schedule_error
@@ -2858,6 +2973,21 @@ def delete_shelter_animal(animal_id):
         abort(404)
 
     cur.execute("""
+        SELECT 1
+        FROM adoption_requests
+        WHERE animal_id = %s
+          AND status IN ('NEW', 'IN_REVIEW')
+        LIMIT 1
+    """, (animal_id,))
+    active_request = cur.fetchone()
+
+    if active_request:
+        cur.close()
+        conn.close()
+        flash("Цю тварину не можна видалити, бо в неї є заявки.", "error")
+        return redirect(url_for("shelter_profile", section="animals"))
+
+    cur.execute("""
         SELECT photo_url
         FROM animal_photos
         WHERE animal_id = %s
@@ -2885,8 +3015,8 @@ def delete_shelter_animal(animal_id):
     cur.close()
     conn.close()
 
+    flash("Тварину видалено.", "success")
     return redirect(url_for("shelter_profile", section="animals"))
-
 
 @app.route("/profile/shelter/animal/<int:animal_id>/toggle", methods=["POST"])
 @admin_required
