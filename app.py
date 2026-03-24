@@ -634,6 +634,19 @@ def admin_required(view):
     return wrapped
 
 
+def superadmin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("auth.login"))
+
+        if session.get("role") != "SUPERADMIN":
+            abort(403)
+
+        return view(*args, **kwargs)
+    return wrapped
+
+
 def build_age_group(age_years):
     if age_years is None:
         return "unknown"
@@ -1076,6 +1089,9 @@ def food_forecast():
     role = session.get("role")
     user_id = session.get("user_id")
     shelter_id = session.get("shelter_id")
+
+    if role == "SUPERADMIN":
+        role = "USER"
 
     if role == "ADMIN":
         if not shelter_id:
@@ -1877,14 +1893,299 @@ def update_shelter_profile():
 
 
 @app.route("/profile/superadmin")
-@login_required
+@superadmin_required
 def superadmin_profile():
-    if session.get("role") != "SUPERADMIN":
-        abort(403)
+    section = request.args.get("section", "info")
+    self_edit_error = request.args.get("self_edit_error", type=int)
+    schedule_error = request.args.get("schedule_error", type=int)
 
-    section = request.args.get("section", "users")
+    if section not in ["info", "edit", "statistics", "users", "shelters"]:
+        section = "info"
 
-    return render_template("superadmin.html", section=section)
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    users_list = []
+    shelters_list = []
+    shelters_for_select = []
+    stats = {}
+
+    cur.execute("""
+        SELECT id, first_name, last_name, email, phone, city, role
+        FROM users
+        WHERE id = %s
+    """, (session["user_id"],))
+    current_superadmin = cur.fetchone()
+
+    cur.execute("""
+        SELECT id, name
+        FROM shelters
+        ORDER BY name
+    """)
+    shelters_for_select = cur.fetchall()
+
+    if section == "statistics":
+        cur.execute("SELECT COUNT(*) AS count FROM users")
+        stats["all_users_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM users WHERE role = 'USER'")
+        stats["user_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM users WHERE role = 'ADMIN'")
+        stats["admin_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM users WHERE role = 'SUPERADMIN'")
+        stats["superadmin_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM shelters")
+        stats["shelter_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM animals")
+        stats["animal_count"] = cur.fetchone()["count"]
+
+        cur.execute("SELECT COUNT(*) AS count FROM adoption_requests")
+        stats["request_count"] = cur.fetchone()["count"]
+
+    elif section == "users":
+        cur.execute("""
+            SELECT
+                u.id,
+                u.email,
+                u.role,
+                u.shelter_id,
+                s.name AS shelter_name
+            FROM users u
+            LEFT JOIN shelters s ON s.id = u.shelter_id
+            WHERE u.id <> %s
+            ORDER BY u.id DESC
+        """, (session["user_id"],))
+        users_list = cur.fetchall()
+
+    elif section == "shelters":
+        cur.execute("""
+            SELECT
+                s.id,
+                s.name,
+                s.city,
+                s.address,
+                s.phone,
+                s.email,
+                s.work_day_from,
+                s.work_day_to,
+                s.open_time,
+                s.close_time,
+                COUNT(DISTINCT a.id) AS animals_count,
+                STRING_AGG(DISTINCT CASE WHEN u.role = 'ADMIN' THEN u.email END, ', ') AS admin_emails
+            FROM shelters s
+            LEFT JOIN animals a ON a.shelter_id = s.id
+            LEFT JOIN users u ON u.shelter_id = s.id
+            GROUP BY s.id
+            ORDER BY s.id DESC
+        """)
+        shelters_list = cur.fetchall()
+
+        for shelter in shelters_list:
+            shelter["formatted_work_schedule"] = format_work_schedule(shelter)
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "superadmin.html",
+        section=section,
+        current_superadmin=current_superadmin,
+        users_list=users_list,
+        shelters_list=shelters_list,
+        shelters_for_select=shelters_for_select,
+        stats=stats,
+        day_options=DAY_OPTIONS,
+        format_time_value=format_time_value,
+        self_edit_error=self_edit_error,
+        schedule_error=schedule_error
+    )
+
+
+@app.route("/profile/superadmin/update", methods=["POST"])
+@superadmin_required
+def update_superadmin_profile():
+    first_name = request.form.get("first_name", "").strip()
+    last_name = request.form.get("last_name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    city = request.form.get("city", "").strip()
+
+    if not first_name or not last_name or not email or not phone or not city:
+        return redirect(url_for("superadmin_profile", section="edit"))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE users
+        SET first_name = %s,
+            last_name = %s,
+            email = %s,
+            phone = %s,
+            city = %s
+        WHERE id = %s
+    """, (first_name, last_name, email, phone, city, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("superadmin_profile", section="info"))
+
+
+@app.post("/profile/superadmin/users/<int:user_id>/role")
+@superadmin_required
+def superadmin_update_user_role(user_id):
+    if user_id == session.get("user_id"):
+        return redirect(url_for("superadmin_profile", section="users", self_edit_error=1))
+
+    new_role = request.form.get("role")
+    shelter_id = request.form.get("shelter_id")
+
+    if new_role not in ["USER", "ADMIN", "SUPERADMIN"]:
+        abort(400)
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    if new_role == "ADMIN":
+        cur.execute("""
+            UPDATE users
+            SET role = %s,
+                shelter_id = %s
+            WHERE id = %s
+        """, (new_role, shelter_id if shelter_id else None, user_id))
+    else:
+        cur.execute("""
+            UPDATE users
+            SET role = %s,
+                shelter_id = NULL
+            WHERE id = %s
+        """, (new_role, user_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("superadmin_profile", section="users"))
+
+
+@app.post("/profile/superadmin/shelters/create")
+@superadmin_required
+def superadmin_create_shelter():
+    name = request.form.get("name", "").strip()
+    city = request.form.get("city", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    address = request.form.get("address", "").strip()
+    work_day_from = request.form.get("work_day_from", "").strip()
+    work_day_to = request.form.get("work_day_to", "").strip()
+    open_time = request.form.get("open_time", "").strip()
+    close_time = request.form.get("close_time", "").strip()
+
+    if not all([name, city, phone, email, address, work_day_from, work_day_to, open_time, close_time]):
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    if work_day_from not in DAY_ORDER or work_day_to not in DAY_ORDER:
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    if DAY_ORDER[work_day_from] > DAY_ORDER[work_day_to]:
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO shelters (
+            name,
+            city,
+            phone,
+            email,
+            address,
+            work_day_from,
+            work_day_to,
+            open_time,
+            close_time
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        name,
+        city,
+        phone,
+        email,
+        address,
+        work_day_from,
+        work_day_to,
+        open_time,
+        close_time
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("superadmin_profile", section="shelters"))
+
+
+@app.post("/profile/superadmin/shelters/<int:shelter_id>/update")
+@superadmin_required
+def superadmin_update_shelter(shelter_id):
+    name = request.form.get("name", "").strip()
+    city = request.form.get("city", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    address = request.form.get("address", "").strip()
+    work_day_from = request.form.get("work_day_from", "").strip()
+    work_day_to = request.form.get("work_day_to", "").strip()
+    open_time = request.form.get("open_time", "").strip()
+    close_time = request.form.get("close_time", "").strip()
+
+    if not all([name, city, phone, email, address, work_day_from, work_day_to, open_time, close_time]):
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    if work_day_from not in DAY_ORDER or work_day_to not in DAY_ORDER:
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    if DAY_ORDER[work_day_from] > DAY_ORDER[work_day_to]:
+        return redirect(url_for("superadmin_profile", section="shelters", schedule_error=1))
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE shelters
+        SET name = %s,
+            city = %s,
+            phone = %s,
+            email = %s,
+            address = %s,
+            work_day_from = %s,
+            work_day_to = %s,
+            open_time = %s,
+            close_time = %s
+        WHERE id = %s
+    """, (
+        name,
+        city,
+        phone,
+        email,
+        address,
+        work_day_from,
+        work_day_to,
+        open_time,
+        close_time,
+        shelter_id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("superadmin_profile", section="shelters"))
 
 
 @app.route("/profile/shelter/food/add", methods=["POST"])
