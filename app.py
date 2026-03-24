@@ -1892,6 +1892,154 @@ def update_shelter_profile():
     return redirect(url_for("shelter_profile", section="profile"))
 
 
+@app.route("/shelter-request", methods=["POST"])
+@login_required
+def submit_shelter_request():
+    if session.get("role") != "USER":
+        flash("Подати таку заявку може тільки звичайний користувач.", "error")
+        return redirect(url_for("profile"))
+
+    shelter_name = request.form.get("shelter_name", "").strip()
+    city = request.form.get("city", "").strip()
+    address = request.form.get("address", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    work_schedule = request.form.get("work_schedule", "").strip()
+
+    if not all([shelter_name, city, address, phone, email, work_schedule]):
+        flash("Заповни всі поля для створення притулку.", "error")
+        return redirect(url_for("profile"))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id
+            FROM shelter_requests
+            WHERE user_id = %s AND status = 'PENDING'
+            LIMIT 1
+        """, (session["user_id"],))
+        existing_request = cur.fetchone()
+
+        if existing_request:
+            flash("У тебе вже є активна заявка, яка очікує розгляду.", "error")
+            return redirect(url_for("profile"))
+
+        cur.execute("""
+            INSERT INTO shelter_requests (
+                user_id,
+                requested_role,
+                shelter_name,
+                city,
+                address,
+                phone,
+                email,
+                work_schedule
+            )
+            VALUES (%s, 'ADMIN', %s, %s, %s, %s, %s, %s)
+        """, (
+            session["user_id"],
+            shelter_name,
+            city,
+            address,
+            phone,
+            email,
+            work_schedule
+        ))
+
+        conn.commit()
+        flash("Заявку на створення притулку подано.", "success")
+    except Exception:
+        conn.rollback()
+        flash("Не вдалося подати заявку.", "error")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("profile"))
+
+
+@app.route("/super-admin/shelter-request/<int:request_id>/approve", methods=["POST"])
+@login_required
+@superadmin_required
+def approve_shelter_request(request_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT *
+            FROM shelter_requests
+            WHERE id = %s
+            FOR UPDATE
+        """, (request_id,))
+        shelter_request = cur.fetchone()
+
+        if not shelter_request:
+            flash("Заявку не знайдено.", "error")
+            return redirect(url_for("profile"))
+
+        if shelter_request["status"] != "PENDING":
+            flash("Ця заявка вже оброблена.", "error")
+            return redirect(url_for("profile"))
+
+        cur.execute("""
+            INSERT INTO shelters (
+                name,
+                city,
+                address,
+                phone,
+                email,
+                work_schedule,
+                admin_user_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            shelter_request["shelter_name"],
+            shelter_request["city"],
+            shelter_request["address"],
+            shelter_request["phone"],
+            shelter_request["email"],
+            shelter_request["work_schedule"],
+            shelter_request["user_id"]
+        ))
+        new_shelter = cur.fetchone()
+
+        cur.execute("""
+            UPDATE users
+            SET role = 'ADMIN'
+            WHERE id = %s
+        """, (shelter_request["user_id"],))
+
+        cur.execute("""
+            UPDATE shelter_requests
+            SET
+                status = 'APPROVED',
+                is_approved = TRUE,
+                approved_shelter_id = %s,
+                reviewed_by = %s,
+                reviewed_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (
+            new_shelter["id"],
+            session["user_id"],
+            request_id
+        ))
+
+        conn.commit()
+        flash("Заявку схвалено. Притулок створено, роль змінено на ADMIN.", "success")
+    except Exception:
+        conn.rollback()
+        flash("Не вдалося схвалити заявку.", "error")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("profile"))
+
+
 @app.route("/profile/superadmin")
 @superadmin_required
 def superadmin_profile():
